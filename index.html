@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DrawNight Lotto Max Lab</title>
+<meta name="description" content="Independent Lotto Max results since 2009, statistics and a fair random number generator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Draw night: one dark stage, gold balls are the only loud thing. Long scroll, sticky rail of four sections. */
+  --night:#090d1d; --stage:#111733; --rail:#1a2146; --line:#2b3566;
+  --ink:#f4f0e4; --dim:#a7aecb; --gold:#f6bb45; --gold-deep:#b9790a; --bonus:#62d6c6; --bar:#8494dc; --warn:#ff9d7a;
+  --display:"Big Shoulders Display","Figtree","PingFang HK","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+  --body:"Figtree","PingFang HK","PingFang SC","Microsoft JhengHei","Microsoft YaHei","Noto Sans TC","Noto Sans SC","Nirmala UI","Noto Sans Gurmukhi","Noto Sans Devanagari",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--night);color:var(--ink);font:16px/1.55 var(--body);
+  background-image:radial-gradient(900px 420px at 18% -80px,#27307099,transparent 70%),radial-gradient(700px 380px at 95% 0,#3a2a0a66,transparent 70%);background-repeat:no-repeat}
+a{color:var(--gold)}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-size:clamp(30px,4.6vw,46px);text-transform:uppercase}
+h3{font-size:22px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+p{margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* top rail */
+.top{position:sticky;top:0;z-index:20;background:#090d1de6;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--ink)}
+.brand i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff3c4,var(--gold) 45%,var(--gold-deep));box-shadow:0 0 14px #f6bb4588}
+.top nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+.top nav a{color:var(--dim);text-decoration:none;padding:6px 10px;border-radius:6px;font-weight:600;font-size:15px}
+.top nav a:hover{color:var(--ink);background:var(--rail)}
+select,input[type=text],input[type=date]{background:var(--stage);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px;max-width:100%}
+select:hover,input:hover{border-color:var(--dim)}
+
+/* balls */
+.ball{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--rail);border:1px solid var(--line);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;flex:none}
+.ball.bonus{background:transparent;border:1.5px solid var(--bonus);color:var(--bonus)}
+.ball.gold{background:radial-gradient(circle at 32% 26%,#fff6d0,var(--gold) 42%,var(--gold-deep));color:#201503;border:0;box-shadow:inset 0 -3px 6px #0003}
+.balls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.plus{color:var(--dim);font-weight:700;padding:0 2px}
+
+/* hero */
+.hero{padding:44px 0 36px}
+.hero .wrap{display:grid;grid-template-columns:1.5fr 1fr;gap:36px;align-items:end}
+.kicker{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+h1{font-size:clamp(40px,6.4vw,76px);text-transform:uppercase;margin:10px 0 26px}
+.latest-label{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;color:var(--dim);margin-bottom:12px}
+.latest-label b{color:var(--ink);font-size:18px}
+.hero .balls{gap:10px}
+.hero .ball{width:clamp(38px,5.4vw,60px);height:clamp(38px,5.4vw,60px);font-family:var(--display);font-weight:800;font-size:clamp(21px,3vw,34px)}
+.hero .ball.gold{box-shadow:inset 0 -5px 10px #0003,0 0 26px #f6bb4540}
+.hero .ball.bonus{border-width:2px}
+.side{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.side div{background:var(--stage);padding:14px 18px}
+.side small{display:block;color:var(--dim);font-size:13px}
+.side b{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:.02em}
+.side .next b{color:var(--gold)}
+.note{margin-top:14px;color:var(--dim);font-size:14px}
+.note.warn{color:var(--warn)}
+
+section{padding:52px 0;border-top:1px solid var(--line)}
+.sub{color:var(--dim);max-width:68ch;margin:10px 0 22px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+.filters label{display:grid;gap:4px;font-size:13px;color:var(--dim);font-weight:600}
+.btn{background:var(--rail);border:1px solid var(--line);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* history table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--stage)}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th,td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:700}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;color:var(--dim)}
+.tfoot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px;color:var(--dim);font-size:14px}
+
+/* analysis */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 18px}
+.tabs button{background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;color:var(--dim);font-weight:600}
+.tabs button:hover{color:var(--ink);border-color:var(--dim)}
+.tabs button[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#201503}
+.panel{background:var(--stage);border:1px solid var(--line);border-radius:14px;padding:22px}
+.cap{color:var(--dim);font-size:14px;margin-bottom:14px;max-width:75ch}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;line-height:1.4}
+.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--gold);flex:none}
+.chartwrap{overflow-x:auto;padding-top:8px}
+.filters label.check{display:flex}
+.chart{display:grid;grid-template-columns:auto 1fr;column-gap:8px;min-width:var(--minw,0)}
+.yax{display:flex;flex-direction:column;justify-content:space-between;height:220px;font-size:11px;color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+.yax span{line-height:1;transform:translateY(-50%)}.yax span:last-child{transform:translateY(50%)}
+.plot{height:220px;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--dim);background:linear-gradient(var(--line),var(--line)) 0 0/100% 1px no-repeat,linear-gradient(var(--line),var(--line)) 0 50%/100% 1px no-repeat}
+.col{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+.bar{width:100%;max-width:38px;background:var(--bar);border-radius:4px 4px 0 0;min-height:1px}
+.col:hover .bar{background:var(--gold)}
+.tick{position:absolute;left:0;right:0;margin:auto;max-width:42px;height:2px;background:var(--ink);box-shadow:0 0 0 1px var(--stage)}
+.xax{grid-column:2;display:flex;gap:2px;font-size:11px;color:var(--dim);padding-top:6px;font-variant-numeric:tabular-nums}
+.xax span{flex:1;min-width:0;text-align:center;white-space:nowrap}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin-top:12px}
+.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
+.legend .lb{width:12px;height:12px;background:var(--bar);border-radius:3px 3px 0 0}.legend .lt{width:16px;height:2px;background:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:22px}
+.rank{display:grid;gap:8px;margin-top:10px}
+.rank div{display:flex;align-items:center;gap:10px}
+.rank .meter{flex:1;height:8px;background:var(--rail);border-radius:4px;overflow:hidden;min-width:30px}
+.rank .meter i{display:block;height:100%;background:var(--bar);border-radius:0 4px 4px 0}
+.rank span.v{color:var(--dim);font-size:14px;font-variant-numeric:tabular-nums;min-width:8ch;text-align:right}
+#tip{position:fixed;z-index:50;pointer-events:none;background:#000d;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;max-width:260px;display:none}
+
+/* patterns */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--stage);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.card{box-shadow:0 0 0 1px var(--line);padding:20px 22px;display:grid;gap:10px;align-content:start}
+.card p{color:var(--dim);font-size:15px}
+.chip{justify-self:start;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px;border:1px solid var(--bonus);color:var(--bonus)}
+.chip.watch{border-color:var(--warn);color:var(--warn)}
+.chip::before{content:"✓ "}.chip.watch::before{content:"! "}
+
+/* generator */
+.gen{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.opts{display:grid;gap:14px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.row output{font-family:var(--display);font-size:28px;font-weight:800;color:var(--gold);min-width:2ch}
+input[type=range]{accent-color:var(--gold);flex:1;min-width:140px}
+.hint{color:var(--dim);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:6px;margin-top:8px}
+.grid button{aspect-ratio:1;border-radius:50%;border:1px solid var(--line);background:var(--rail);cursor:pointer;font-weight:700;font-size:14px;padding:0}
+.grid button:hover{border-color:var(--dim)}
+.grid button.inc{background:var(--gold);color:#201503;border-color:var(--gold)}
+.grid button.exc{background:transparent;color:#6c7499;text-decoration:line-through;border-style:dashed}
+.grid button.auto{opacity:.35}
+.keyl{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin-top:8px}
+.keyl i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.machine{position:sticky;top:76px;display:grid;gap:18px}
+.drumrow{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.drum{width:120px;height:120px;border-radius:50%;border:2px solid var(--line);background:radial-gradient(circle at 35% 30%,#2a3470,#0c1024 70%);position:relative;flex:none;box-shadow:inset 0 0 30px #000a}
+.drum b{position:absolute;inset:0;animation:spin 14s linear infinite}
+.drum b:nth-child(2){animation-duration:19s;animation-direction:reverse}
+.drum b i{position:absolute;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 32% 26%,#fff6d0,var(--gold) 45%,var(--gold-deep))}
+.drum.spin b{animation-duration:.7s}.drum.spin b:nth-child(2){animation-duration:.95s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.go{background:var(--gold);color:#201503;border:0;border-radius:12px;padding:14px 26px;font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;min-height:56px}
+.go:hover{background:#ffd06d}.go:disabled{opacity:.6;cursor:wait}
+.lines{display:grid;gap:10px}
+.lrow{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.lrow:last-child{border-bottom:0}
+.lrow .lab{font-family:var(--display);font-weight:600;font-size:18px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;min-width:5ch}
+.lrow .meta{grid-column:2;font-size:13px;color:var(--dim)}
+.lrow .ball{width:40px;height:40px;font-size:17px;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.lrow .ball.wait{opacity:0;transform:scale(.3) translateY(-14px)}
+.msg{color:var(--warn);font-size:14px;min-height:1.4em}
+footer{border-top:1px solid var(--line);padding:32px 0 60px;color:var(--dim);font-size:13.5px}
+footer p{max-width:85ch;margin-bottom:10px}
+@media (max-width:860px){.hero .wrap,.gen,.two{grid-template-columns:1fr}.machine{position:static}.top .wrap{gap:6px 12px}.top nav{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto}.top nav a{padding:4px 8px;font-size:14px;white-space:nowrap}#lang{margin-left:auto}html{scroll-padding-top:110px}}
+:lang(zh) h1{font-size:clamp(34px,5vw,58px);line-height:1.15}
+:lang(pa) h1,:lang(hi) h1{font-size:clamp(30px,4.4vw,52px);line-height:1.35}
+:lang(pa) h2,:lang(hi) h2,:lang(pa) h3,:lang(hi) h3{line-height:1.4}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.drum b{animation:none}.lrow .ball{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#top"><i></i>DrawNight</a>
+  <nav>
+    <a href="#results" data-i18n="nav_history"></a>
+    <a href="#analysis" data-i18n="nav_analysis"></a>
+    <a href="#patterns" data-i18n="nav_patterns"></a>
+    <a href="#generator" data-i18n="nav_generator"></a>
+  </nav>
+  <select id="lang" aria-label="Language">
+    <option value="en">English</option><option value="fr">Français</option><option value="zh-Hant">繁體中文</option>
+    <option value="zh-Hans">简体中文</option><option value="pa">ਪੰਜਾਬੀ</option><option value="hi">हिन्दी</option>
+  </select>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap">
+  <div>
+    <div class="kicker" data-i18n="hero_kicker"></div>
+    <h1 data-i18n="hero_title"></h1>
+    <div class="latest-label"><span data-i18n="hero_latest"></span><b id="latestDate"></b></div>
+    <div class="balls" id="latestBalls"></div>
+    <p class="note" id="fresh"></p>
+  </div>
+  <div class="side">
+    <div class="next"><small data-i18n="next_draw"></small><b id="nextDraw"></b></div>
+    <div><small data-i18n="draws_on_file"></small><b id="nDraws"></b></div>
+    <div><small data-i18n="pool_now"></small><b id="poolNow"></b></div>
+    <div><small data-i18n="odds_line"></small><b id="odds"></b></div>
+  </div>
+</div></div>
+
+<section id="results"><div class="wrap">
+  <h2 data-i18n="h_title"></h2>
+  <p class="sub" data-i18n="h_sub"></p>
+  <div class="filters">
+    <label><span data-i18n="f_year"></span><select id="fYear"></select></label>
+    <label><span data-i18n="f_day"></span><select id="fDow"></select></label>
+    <label><span data-i18n="f_from"></span><input type="date" id="fFrom"></label>
+    <label><span data-i18n="f_to"></span><input type="date" id="fTo"></label>
+    <label><span data-i18n="f_nums"></span><input type="text" id="fNums" inputmode="numeric" size="12"></label>
+    <button class="btn" id="fReset" data-i18n="reset"></button>
+  </div>
+  <div class="tablewrap"><table><thead><tr>
+    <th data-i18n="col_date"></th><th data-i18n="col_numbers"></th><th data-i18n="col_sum"></th><th data-i18n="col_oe"></th>
+  </tr></thead><tbody id="hBody"></tbody></table></div>
+  <div class="tfoot"><span id="hCount"></span><button class="btn" id="hMore" data-i18n="more"></button><button class="btn" id="hAll"></button></div>
+</div></section>
+
+<section id="analysis"><div class="wrap">
+  <h2 data-i18n="a_title"></h2>
+  <p class="sub" data-i18n="a_sub"></p>
+  <div class="filters">
+    <label><span data-i18n="scope"></span><select id="aScope"></select></label>
+    <label class="check" style="color:var(--ink);font-size:15px;font-weight:400;padding-bottom:9px"><input type="checkbox" id="aBonus"><span data-i18n="inc_bonus"></span></label>
+  </div>
+  <div class="tabs" id="aTabs"></div>
+  <div class="panel" id="aPanel"></div>
+</div></section>
+
+<section id="patterns"><div class="wrap">
+  <h2 data-i18n="p_title"></h2>
+  <p class="sub" id="pSub"></p>
+  <div class="cards" id="pCards"></div>
+</div></section>
+
+<section id="generator"><div class="wrap">
+  <h2 data-i18n="g_title"></h2>
+  <p class="sub" data-i18n="g_sub"></p>
+  <div class="gen">
+    <div class="panel opts">
+      <h3 data-i18n="gf_title"></h3>
+      <div><label for="gLines" data-i18n="g_lines"></label>
+        <div class="row"><input type="range" id="gLines" min="1" max="10" value="4"><output id="gLinesOut">4</output></div></div>
+      <div><label for="gExlast" data-i18n="g_exlast"></label>
+        <div class="row"><select id="gExlast"></select></div><div class="hint" id="gExlastList"></div></div>
+      <label class="check"><input type="checkbox" id="gExcombo" checked><span data-i18n="g_excombo"></span></label>
+      <label class="check"><input type="checkbox" id="gSum"><span id="gSumLbl"></span></label>
+      <label class="check"><input type="checkbox" id="gOe"><span data-i18n="g_oe"></span></label>
+      <label class="check"><input type="checkbox" id="gRun"><span data-i18n="g_run"></span></label>
+      <label class="check"><input type="checkbox" id="gBday"><span data-i18n="g_bday"></span></label>
+      <div><b data-i18n="g_grid"></b><div class="hint" data-i18n="g_grid_help"></div>
+        <div class="grid" id="gGrid"></div>
+        <div class="keyl"><span><i style="background:var(--gold)"></i><span data-i18n="lg_inc"></span></span><span><i style="border:1px dashed var(--dim)"></i><span data-i18n="lg_exc"></span></span></div></div>
+    </div>
+    <div class="machine">
+      <div class="drumrow">
+        <div class="drum" id="drum" aria-hidden="true"><b></b><b></b></div>
+        <div style="display:grid;gap:10px;flex:1;min-width:200px">
+          <button class="go" id="gGo" data-i18n="g_draw"></button>
+          <div class="hint" id="gPass"></div>
+        </div>
+      </div>
+      <div class="msg" id="gMsg" role="status"></div>
+      <div class="panel"><div class="lines" id="gOut"></div>
+        <div class="tfoot"><button class="btn" id="gCopy" data-i18n="copy" hidden></button></div></div>
+    </div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p data-i18n="foot_play"></p><p data-i18n="foot_ind"></p><p data-i18n="foot_src"></p><p id="footData"></p>
+</div></footer>
+<div id="tip" role="tooltip"></div>
+<script>
+const I18N={
+en:{
+nav_history:"Results",nav_analysis:"Analysis",nav_patterns:"Patterns",nav_generator:"Generator",
+hero_kicker:"Independent Lotto Max data",hero_title:"Every draw since 2009. A fair machine for your next line.",hero_latest:"Latest draw",bonus:"Bonus",
+next_draw:"Next draw",tonight:"Tonight",draws_on_file:"Draws on file",pool_now:"Numbers in play",odds_line:"Jackpot odds per line",
+data_through:"Data through {date}",stale:"{n} recent draw(s) are not loaded yet. They will appear after the next update.",
+h_title:"Past results",h_sub:"The 10 most recent draws. Use the filters to reach any draw back to September 25, 2009.",
+f_year:"Year",all:"All",f_day:"Draw day",tue:"Tuesday",fri:"Friday",f_from:"From",f_to:"To",f_nums:"Contains numbers",f_nums_ph:"e.g. 7, 23",reset:"Reset",
+col_date:"Date",col_numbers:"Winning numbers + bonus",col_sum:"Sum",col_oe:"Odd : Even",
+h_count:"Showing {a} of {b} draws",more:"Show 10 more",show_all:"Show all {b}",none:"No draws match these filters.",
+a_title:"Analysis",a_sub:"Pick a period and a question. Lotto Max has changed its number pool twice, so compare like with like.",
+scope:"Period",sc_cur:"Current rules, 1–52 (since Apr 14, 2026)",sc_e50:"1–50 era (May 2019 – Apr 2026)",sc_e49:"1–49 era (2009 – May 2019)",sc_all:"All draws since 2009",sc_l50:"Last 50 draws",sc_l100:"Last 100 draws",
+inc_bonus:"Count the bonus number too",
+v_freq:"Most drawn",v_gap:"Overdue and never drawn",v_pairs:"Common combinations",v_oe:"Odd / even",v_sum:"Sum of numbers",v_rep:"Repeats and neighbours",
+n_draws:"{n} draws in this period",freq_cap:"Share of draws in which each number appeared. The white tick marks what pure chance predicts.",
+hot:"Most drawn",cold:"Least drawn",tip_freq:"No. {n}: drawn in {c} of {m} draws ({p}%). Chance predicts {e}%.",
+gap_cap:"Draws since each number last appeared, longest wait first.",gap_never:"Never drawn in this period",gap_none:"Every number has appeared at least once.",gap_unit:"{g} draws ago",
+gap_note51:"51 and 52 joined the game on April 14, 2026, so they cannot appear in earlier draws.",
+pairs_t:"Top pairs",trip_t:"Top triples",pairs_cap:"Numbers drawn together most often. Across {m} draws, any given pair is expected about {e} times, and some pairs must lead by luck alone.",
+oe_cap:"How many of the 7 numbers were odd. Bars show real draws, white ticks show chance.",odd_n:"{k} odd",tip_dist:"{l}: {p}% of draws. Chance predicts {e}%.",
+sum_cap:"Total of the 7 winning numbers. 80% of draws in this period landed between {a} and {b}.",tip_sum:"Sum {l}: {c} draws ({p}%)",
+rep_cap:"How many numbers each draw shared with the draw before it.",rep_n:"{k} repeated",rep_cons:"{p}% of draws contained at least one pair of neighbours such as 23 and 24. Chance predicts {e}%.",
+observed:"Actual draws",expected:"Predicted by chance",
+p_title:"What Claude found",p_sub:"Claude tested all {n} draws for patterns. The short version: they behave like fair random draws. The shapes below are real, but they are what randomness looks like, and none of them predicts the next draw.",
+verdict_ok:"Matches chance",verdict_watch:"Small sample",
+p1_t:"No number is favoured",p1_b:"A chi-square test compares how often each number came up against an even spread. p-values: 1–49 era {a}, 1–50 era {b}, 1–52 era {c}. Anything above 0.05 means no sign of bias.",
+p2_t:"Sums cluster in the middle",p2_b:"Since 2019, 80% of draws added up to between {a} and {b}. That is arithmetic: far more combinations reach middle totals than extreme ones.",
+p3_t:"Odd and even usually split 3–4",p3_b:"{o}% of draws had 3 or 4 odd numbers. Chance predicts {e}%.",
+p4_t:"Neighbouring numbers are normal",p4_b:"{o}% of draws included at least one consecutive pair. Chance predicts {e}%.",
+p5_t:"A repeat from the last draw is common",p5_b:"{o}% of draws reused at least one number from the draw before. Chance predicts {e}%.",
+p6_t:"No combination has won twice",p6_b:"All {n} draws are different. The two closest, {d1} and {d2}, shared {k} of 7 numbers.",
+p7_t:"Birthday lines cost you when they win",p7_b:"{c} draws ({o}%) used only numbers up to 31. Such lines are as likely as any other, but many players pick dates, so a win is split more ways.",
+p8_t:"51 and 52 are too new to judge",p8_b:"Only {n} draws have used the 1–52 pool. Hot and cold lists for this era will swing widely until there are a few hundred draws.",
+g_title:"Number generator",g_sub:"Each line is drawn the way the official draw works: seven numbers picked at random from the pool, none repeated, using your device's cryptographic random source. Filters only remove lines you do not want. They do not change your odds of winning.",
+gf_title:"Filters",g_lines:"Lines to generate",g_exlast:"Skip numbers from recent draws",g_exlast_0:"Off",g_exlast_n:"Last {n} draw(s)",g_exlast_list:"Skipped: {list}",
+g_excombo:"Skip any combination that has already won",g_sum:"Keep the sum between {a} and {b}, where 80% of draws land",g_oe:"Avoid lopsided odd/even splits (0–7, 1–6, 6–1, 7–0)",
+g_run:"No runs of 3 or more neighbours (such as 14, 15, 16)",g_bday:"Avoid birthday-only lines (every number 31 or under)",
+g_grid:"Your numbers",g_grid_help:"Tap once to always include, twice to never include, a third time to clear.",lg_inc:"Always include",lg_exc:"Never include",
+g_pass:"About {p}% of all {t} possible lines pass your filters.",g_pass0:"No line can pass these filters. Loosen one.",
+g_draw:"Draw numbers",g_drawing:"Drawing…",g_again:"Draw again",line:"Line {n}",copy:"Copy lines",copied:"Copied",g_empty:"Your lines will appear here.",
+g_err:"Could not find enough lines that pass every filter. Loosen one and try again.",g_max:"You can lock in at most 6 numbers.",sum_lbl:"Sum {s}",oe_lbl:"{o} odd, {e} even",
+foot_ind:"DrawNight is an independent site. It is not affiliated with or endorsed by OLG, BCLC, WCLC, Loto-Québec, Atlantic Lottery or the Interprovincial Lottery Corporation. If anything here differs from the official results, the official results prevail.",
+foot_play:"Lottery draws are random. No analysis or generator can improve your chance of winning. You must be of legal age in your province to play. Set a budget and keep to it.",
+foot_src:"Results compiled from official lottery corporation postings and checked against public archives."},
+
+fr:{
+nav_history:"Résultats",nav_analysis:"Analyse",nav_patterns:"Tendances",nav_generator:"Générateur",
+hero_kicker:"Données indépendantes sur le Lotto Max",hero_title:"Tous les tirages depuis 2009. Une machine équitable pour votre prochaine ligne.",hero_latest:"Dernier tirage",bonus:"Complémentaire",
+next_draw:"Prochain tirage",tonight:"Ce soir",draws_on_file:"Tirages enregistrés",pool_now:"Numéros en jeu",odds_line:"Chances du gros lot par ligne",
+data_through:"Données à jour au {date}",stale:"{n} tirage(s) récent(s) ne sont pas encore chargés. Ils apparaîtront à la prochaine mise à jour.",
+h_title:"Résultats antérieurs",h_sub:"Les 10 tirages les plus récents. Utilisez les filtres pour remonter jusqu'au 25 septembre 2009.",
+f_year:"Année",all:"Tous",f_day:"Jour du tirage",tue:"Mardi",fri:"Vendredi",f_from:"Du",f_to:"Au",f_nums:"Contient les numéros",f_nums_ph:"ex. 7, 23",reset:"Réinitialiser",
+col_date:"Date",col_numbers:"Numéros gagnants + complémentaire",col_sum:"Somme",col_oe:"Impairs : Pairs",
+h_count:"{a} tirages affichés sur {b}",more:"Afficher 10 de plus",show_all:"Afficher les {b}",none:"Aucun tirage ne correspond à ces filtres.",
+a_title:"Analyse",a_sub:"Choisissez une période et une question. Le Lotto Max a changé deux fois son bassin de numéros : comparez des périodes comparables.",
+scope:"Période",sc_cur:"Règles actuelles, 1–52 (depuis le 14 avr. 2026)",sc_e50:"Époque 1–50 (mai 2019 – avr. 2026)",sc_e49:"Époque 1–49 (2009 – mai 2019)",sc_all:"Tous les tirages depuis 2009",sc_l50:"50 derniers tirages",sc_l100:"100 derniers tirages",
+inc_bonus:"Compter aussi le numéro complémentaire",
+v_freq:"Les plus tirés",v_gap:"En retard et jamais tirés",v_pairs:"Combinaisons fréquentes",v_oe:"Pairs / impairs",v_sum:"Somme des numéros",v_rep:"Répétitions et voisins",
+n_draws:"{n} tirages dans cette période",freq_cap:"Part des tirages où chaque numéro est sorti. Le trait blanc indique ce que prévoit le hasard.",
+hot:"Les plus tirés",cold:"Les moins tirés",tip_freq:"N° {n} : sorti dans {c} tirages sur {m} ({p} %). Le hasard prévoit {e} %.",
+gap_cap:"Nombre de tirages depuis la dernière sortie de chaque numéro, la plus longue attente d'abord.",gap_never:"Jamais tirés dans cette période",gap_none:"Chaque numéro est sorti au moins une fois.",gap_unit:"il y a {g} tirages",
+gap_note51:"Le 51 et le 52 sont entrés en jeu le 14 avril 2026 : ils ne peuvent pas figurer dans les tirages antérieurs.",
+pairs_t:"Paires en tête",trip_t:"Triplets en tête",pairs_cap:"Numéros le plus souvent tirés ensemble. Sur {m} tirages, une paire donnée est attendue environ {e} fois, et certaines mènent forcément par pur hasard.",
+oe_cap:"Combien des 7 numéros étaient impairs. Les barres montrent les tirages réels, les traits blancs le hasard.",odd_n:"{k} impairs",tip_dist:"{l} : {p} % des tirages. Le hasard prévoit {e} %.",
+sum_cap:"Total des 7 numéros gagnants. 80 % des tirages de cette période se situent entre {a} et {b}.",tip_sum:"Somme {l} : {c} tirages ({p} %)",
+rep_cap:"Combien de numéros chaque tirage partageait avec le tirage précédent.",rep_n:"{k} répétés",rep_cons:"{p} % des tirages contenaient au moins deux numéros voisins, comme 23 et 24. Le hasard prévoit {e} %.",
+observed:"Tirages réels",expected:"Prévu par le hasard",
+p_title:"Ce que Claude a trouvé",p_sub:"Claude a testé les {n} tirages à la recherche de tendances. En bref : ils se comportent comme des tirages aléatoires équitables. Les formes ci-dessous sont réelles, mais c'est à cela que ressemble le hasard, et aucune ne prédit le prochain tirage.",
+verdict_ok:"Conforme au hasard",verdict_watch:"Petit échantillon",
+p1_t:"Aucun numéro n'est favorisé",p1_b:"Un test du khi-deux compare la fréquence de chaque numéro à une répartition égale. Valeurs p : époque 1–49 {a}, époque 1–50 {b}, époque 1–52 {c}. Au-dessus de 0,05, aucun signe de biais.",
+p2_t:"Les sommes se regroupent au milieu",p2_b:"Depuis 2019, 80 % des tirages totalisent entre {a} et {b}. C'est de l'arithmétique : bien plus de combinaisons donnent un total moyen qu'un total extrême.",
+p3_t:"Pairs et impairs se partagent souvent 3–4",p3_b:"{o} % des tirages comptaient 3 ou 4 numéros impairs. Le hasard prévoit {e} %.",
+p4_t:"Les numéros voisins sont normaux",p4_b:"{o} % des tirages comprenaient au moins une paire consécutive. Le hasard prévoit {e} %.",
+p5_t:"Une répétition du tirage précédent est courante",p5_b:"{o} % des tirages ont repris au moins un numéro du tirage précédent. Le hasard prévoit {e} %.",
+p6_t:"Aucune combinaison n'a gagné deux fois",p6_b:"Les {n} tirages sont tous différents. Les deux plus proches, {d1} et {d2}, avaient {k} numéros sur 7 en commun.",
+p7_t:"Les lignes d'anniversaires coûtent cher quand elles gagnent",p7_b:"{c} tirages ({o} %) n'ont utilisé que des numéros jusqu'à 31. Ces lignes sont aussi probables que les autres, mais beaucoup de joueurs choisissent des dates : le lot se partage alors davantage.",
+p8_t:"Trop tôt pour juger le 51 et le 52",p8_b:"Seulement {n} tirages ont utilisé le bassin 1–52. Les listes de numéros chauds et froids de cette époque varieront beaucoup tant qu'il n'y aura pas quelques centaines de tirages.",
+g_title:"Générateur de numéros",g_sub:"Chaque ligne est tirée comme au tirage officiel : sept numéros choisis au hasard dans le bassin, sans répétition, à l'aide de la source aléatoire cryptographique de votre appareil. Les filtres écartent seulement les lignes dont vous ne voulez pas. Ils ne changent pas vos chances de gagner.",
+gf_title:"Filtres",g_lines:"Lignes à générer",g_exlast:"Écarter les numéros des tirages récents",g_exlast_0:"Désactivé",g_exlast_n:"{n} dernier(s) tirage(s)",g_exlast_list:"Écartés : {list}",
+g_excombo:"Écarter toute combinaison déjà gagnante",g_sum:"Garder la somme entre {a} et {b}, là où tombent 80 % des tirages",g_oe:"Éviter les répartitions pairs/impairs extrêmes (0–7, 1–6, 6–1, 7–0)",
+g_run:"Pas de suite de 3 voisins ou plus (comme 14, 15, 16)",g_bday:"Éviter les lignes d'anniversaires (tous les numéros à 31 ou moins)",
+g_grid:"Vos numéros",g_grid_help:"Touchez une fois pour toujours inclure, deux fois pour toujours exclure, une troisième fois pour effacer.",lg_inc:"Toujours inclure",lg_exc:"Toujours exclure",
+g_pass:"Environ {p} % des {t} lignes possibles passent vos filtres.",g_pass0:"Aucune ligne ne peut passer ces filtres. Assouplissez-en un.",
+g_draw:"Tirer les numéros",g_drawing:"Tirage…",g_again:"Tirer de nouveau",line:"Ligne {n}",copy:"Copier les lignes",copied:"Copié",g_empty:"Vos lignes apparaîtront ici.",
+g_err:"Impossible de trouver assez de lignes qui passent tous les filtres. Assouplissez-en un et réessayez.",g_max:"Vous pouvez fixer au plus 6 numéros.",sum_lbl:"Somme {s}",oe_lbl:"{o} impairs, {e} pairs",
+foot_ind:"DrawNight est un site indépendant. Il n'est ni affilié à OLG, BCLC, WCLC, Loto-Québec, Loto Atlantique ou la Société de la loterie interprovinciale, ni approuvé par eux. En cas de différence, les résultats officiels prévalent.",
+foot_play:"Les tirages de loterie sont aléatoires. Aucune analyse ni aucun générateur ne peut améliorer vos chances de gagner. Vous devez avoir l'âge légal dans votre province pour jouer. Fixez-vous un budget et respectez-le.",
+foot_src:"Résultats compilés à partir des publications des sociétés de loterie officielles et vérifiés dans des archives publiques."},
+
+"zh-Hant":{
+nav_history:"歷史結果",nav_analysis:"數據分析",nav_patterns:"規律",nav_generator:"號碼生成器",
+hero_kicker:"獨立 Lotto Max 數據站",hero_title:"2009 年至今每一期攪珠，加一部公平的選號機。",hero_latest:"最新一期",bonus:"特別號碼",
+next_draw:"下期攪珠",tonight:"今晚",draws_on_file:"已收錄期數",pool_now:"現行號碼範圍",odds_line:"每行中頭獎機會",
+data_through:"數據更新至 {date}",stale:"有 {n} 期最新攪珠尚未載入，下次更新後會顯示。",
+h_title:"歷史攪珠結果",h_sub:"預設顯示最近 10 期。用篩選器可以查到 2009 年 9 月 25 日以來任何一期。",
+f_year:"年份",all:"全部",f_day:"攪珠日",tue:"星期二",fri:"星期五",f_from:"由",f_to:"至",f_nums:"包含號碼",f_nums_ph:"例如 7, 23",reset:"重設",
+col_date:"日期",col_numbers:"中獎號碼＋特別號碼",col_sum:"總和",col_oe:"單：雙",
+h_count:"顯示 {a} 期，共 {b} 期",more:"再顯示 10 期",show_all:"顯示全部 {b} 期",none:"沒有符合篩選條件的攪珠。",
+a_title:"數據分析",a_sub:"選擇時期和想看的數據。Lotto Max 的號碼範圍改過兩次，所以要同一時期才好比較。",
+scope:"時期",sc_cur:"現行規則 1–52（2026 年 4 月 14 日起）",sc_e50:"1–50 時期（2019 年 5 月至 2026 年 4 月）",sc_e49:"1–49 時期（2009 年至 2019 年 5 月）",sc_all:"2009 年至今全部",sc_l50:"最近 50 期",sc_l100:"最近 100 期",
+inc_bonus:"連特別號碼一併計算",
+v_freq:"最常出現",v_gap:"久未出現／從未出現",v_pairs:"常見組合",v_oe:"單雙比例",v_sum:"號碼總和",v_rep:"重複與連號",
+n_draws:"此時期共 {n} 期",freq_cap:"每個號碼在多少比例的攪珠中出現。白色橫線是純粹隨機的預期值。",
+hot:"最常出現",cold:"最少出現",tip_freq:"{n} 號：{m} 期中出現 {c} 次（{p}%），隨機預期 {e}%。",
+gap_cap:"每個號碼距離上次出現已隔多少期，由最久開始排列。",gap_never:"此時期從未出現的號碼",gap_none:"所有號碼都至少出現過一次。",gap_unit:"{g} 期前",
+gap_note51:"51 和 52 號在 2026 年 4 月 14 日才加入，所以不可能在之前的攪珠出現。",
+pairs_t:"最常見的兩個號碼",trip_t:"最常見的三個號碼",pairs_cap:"最常一齊出現的號碼。{m} 期當中，任何一對號碼預期一齊出現約 {e} 次，總有幾對純粹因為運氣而領先。",
+oe_cap:"7 個號碼中有幾多個單數。柱是實際攪珠，白色橫線是隨機預期。",odd_n:"{k} 個單數",tip_dist:"{l}：佔 {p}%，隨機預期 {e}%。",
+sum_cap:"7 個中獎號碼的總和。此時期有 80% 的攪珠總和介乎 {a} 至 {b}。",tip_sum:"總和 {l}：{c} 期（{p}%）",
+rep_cap:"每期有幾多個號碼與上一期相同。",rep_n:"{k} 個重複",rep_cons:"{p}% 的攪珠有至少一對連號（例如 23、24），隨機預期 {e}%。",
+observed:"實際攪珠",expected:"隨機預期",
+p_title:"Claude 的分析結果",p_sub:"Claude 檢驗了全部 {n} 期攪珠有沒有規律。結論很簡單：結果與公平的隨機攪珠一致。下面的現象都是真的，但它們正是隨機應有的樣子，沒有任何一項可以預測下一期。",
+verdict_ok:"與隨機一致",verdict_watch:"樣本太少",
+p1_t:"沒有號碼特別「旺」",p1_b:"卡方檢定比較每個號碼的出現次數與平均分佈的差距。p 值：1–49 時期 {a}，1–50 時期 {b}，1–52 時期 {c}。高於 0.05 即代表沒有偏差的跡象。",
+p2_t:"總和集中在中間",p2_b:"2019 年至今，80% 的攪珠總和介乎 {a} 至 {b}。這是數學必然：加起來是中間數值的組合遠多於極端數值。",
+p3_t:"單雙通常是 3 比 4",p3_b:"{o}% 的攪珠有 3 或 4 個單數，隨機預期 {e}%。",
+p4_t:"出現連號很正常",p4_b:"{o}% 的攪珠有至少一對連號，隨機預期 {e}%。",
+p5_t:"重複上期號碼很常見",p5_b:"{o}% 的攪珠有至少一個號碼與上一期相同，隨機預期 {e}%。",
+p6_t:"從未有組合中過兩次",p6_b:"全部 {n} 期都不相同。最接近的兩期是 {d1} 和 {d2}，7 個號碼中有 {k} 個相同。",
+p7_t:"生日號碼中了要同更多人分",p7_b:"有 {c} 期（{o}%）全部號碼都在 31 或以下。這類組合的中獎機會與其他組合一樣，但很多人用日期選號，中了獎金要分給更多人。",
+p8_t:"51 和 52 號仍未夠數據判斷",p8_b:"1–52 號碼範圍只用了 {n} 期。未累積到幾百期之前，這時期的冷熱號碼排名會大幅波動。",
+g_title:"號碼生成器",g_sub:"每行號碼的產生方式與官方攪珠一樣：從號碼池隨機抽出 7 個號碼，抽出後不放回，使用你裝置的加密級隨機源。篩選條件只會剔除你不想要的組合，不會改變中獎機會。",
+gf_title:"篩選條件",g_lines:"生成行數",g_exlast:"不要最近幾期開過的號碼",g_exlast_0:"關閉",g_exlast_n:"最近 {n} 期",g_exlast_list:"已剔除：{list}",
+g_excombo:"不要曾經中過頭獎的組合",g_sum:"總和保持在 {a} 至 {b}（80% 的攪珠落在這範圍）",g_oe:"避免單雙極端（0–7、1–6、6–1、7–0）",
+g_run:"不要 3 個或以上連號（例如 14、15、16）",g_bday:"避免「生日組合」（全部號碼 31 或以下）",
+g_grid:"自選號碼",g_grid_help:"按一下：必定包含；按兩下：必定不要；按三下：取消。",lg_inc:"必定包含",lg_exc:"必定不要",
+g_pass:"全部 {t} 個可能組合之中，約 {p}% 符合你的篩選條件。",g_pass0:"沒有組合能符合這些條件，請放寬其中一項。",
+g_draw:"開始攪珠",g_drawing:"攪珠中…",g_again:"再攪一次",line:"第 {n} 行",copy:"複製號碼",copied:"已複製",g_empty:"你的號碼會顯示在這裡。",
+g_err:"找不到足夠符合所有條件的組合，請放寬其中一項再試。",g_max:"最多只可以指定 6 個必定包含的號碼。",sum_lbl:"總和 {s}",oe_lbl:"{o} 單 {e} 雙",
+foot_ind:"DrawNight 是獨立網站，與 OLG、BCLC、WCLC、Loto-Québec、Atlantic Lottery 及 Interprovincial Lottery Corporation 並無關連，亦未獲其認可。如本站資料與官方結果有出入，一概以官方結果為準。",
+foot_play:"彩票攪珠是隨機的，任何分析或生成器都不能提高中獎機會。你必須達到所在省份的法定年齡才可購買彩票。請訂立預算，量力而為。",
+foot_src:"攪珠結果整理自各官方彩票機構公佈的資料，並與公開資料庫核對。"},
+
+"zh-Hans":{
+nav_history:"历史结果",nav_analysis:"数据分析",nav_patterns:"规律",nav_generator:"号码生成器",
+hero_kicker:"独立 Lotto Max 数据站",hero_title:"2009 年至今每一期开奖，加一台公平的选号机。",hero_latest:"最新一期",bonus:"特别号码",
+next_draw:"下期开奖",tonight:"今晚",draws_on_file:"已收录期数",pool_now:"现行号码范围",odds_line:"每行中头奖概率",
+data_through:"数据更新至 {date}",stale:"有 {n} 期最新开奖尚未载入，下次更新后会显示。",
+h_title:"历史开奖结果",h_sub:"默认显示最近 10 期。使用筛选器可以查到 2009 年 9 月 25 日以来的任何一期。",
+f_year:"年份",all:"全部",f_day:"开奖日",tue:"星期二",fri:"星期五",f_from:"从",f_to:"到",f_nums:"包含号码",f_nums_ph:"例如 7, 23",reset:"重置",
+col_date:"日期",col_numbers:"中奖号码＋特别号码",col_sum:"总和",col_oe:"单：双",
+h_count:"显示 {a} 期，共 {b} 期",more:"再显示 10 期",show_all:"显示全部 {b} 期",none:"没有符合筛选条件的开奖。",
+a_title:"数据分析",a_sub:"选择时期和想看的数据。Lotto Max 的号码范围改过两次，所以要同一时期才好比较。",
+scope:"时期",sc_cur:"现行规则 1–52（2026 年 4 月 14 日起）",sc_e50:"1–50 时期（2019 年 5 月至 2026 年 4 月）",sc_e49:"1–49 时期（2009 年至 2019 年 5 月）",sc_all:"2009 年至今全部",sc_l50:"最近 50 期",sc_l100:"最近 100 期",
+inc_bonus:"把特别号码也算进去",
+v_freq:"最常出现",v_gap:"久未出现／从未出现",v_pairs:"常见组合",v_oe:"单双比例",v_sum:"号码总和",v_rep:"重复与连号",
+n_draws:"此时期共 {n} 期",freq_cap:"每个号码在多大比例的开奖中出现。白色横线是纯随机的预期值。",
+hot:"最常出现",cold:"最少出现",tip_freq:"{n} 号：{m} 期中出现 {c} 次（{p}%），随机预期 {e}%。",
+gap_cap:"每个号码距离上次出现已隔多少期，从最久的开始排列。",gap_never:"此时期从未出现的号码",gap_none:"所有号码都至少出现过一次。",gap_unit:"{g} 期前",
+gap_note51:"51 和 52 号在 2026 年 4 月 14 日才加入，所以不可能在之前的开奖中出现。",
+pairs_t:"最常见的两个号码",trip_t:"最常见的三个号码",pairs_cap:"最常一起出现的号码。{m} 期当中，任意一对号码预期一起出现约 {e} 次，总有几对纯粹因为运气而领先。",
+oe_cap:"7 个号码中有几个单数。柱是实际开奖，白色横线是随机预期。",odd_n:"{k} 个单数",tip_dist:"{l}：占 {p}%，随机预期 {e}%。",
+sum_cap:"7 个中奖号码的总和。此时期有 80% 的开奖总和在 {a} 到 {b} 之间。",tip_sum:"总和 {l}：{c} 期（{p}%）",
+rep_cap:"每期有几个号码与上一期相同。",rep_n:"{k} 个重复",rep_cons:"{p}% 的开奖有至少一对连号（例如 23、24），随机预期 {e}%。",
+observed:"实际开奖",expected:"随机预期",
+p_title:"Claude 的分析结果",p_sub:"Claude 检验了全部 {n} 期开奖有没有规律。结论很简单：结果与公平的随机开奖一致。下面的现象都是真的，但它们正是随机应有的样子，没有任何一项可以预测下一期。",
+verdict_ok:"与随机一致",verdict_watch:"样本太少",
+p1_t:"没有号码特别“旺”",p1_b:"卡方检验比较每个号码的出现次数与平均分布的差距。p 值：1–49 时期 {a}，1–50 时期 {b}，1–52 时期 {c}。高于 0.05 即表示没有偏差的迹象。",
+p2_t:"总和集中在中间",p2_b:"2019 年至今，80% 的开奖总和在 {a} 到 {b} 之间。这是数学必然：加起来是中间数值的组合远多于极端数值。",
+p3_t:"单双通常是 3 比 4",p3_b:"{o}% 的开奖有 3 或 4 个单数，随机预期 {e}%。",
+p4_t:"出现连号很正常",p4_b:"{o}% 的开奖有至少一对连号，随机预期 {e}%。",
+p5_t:"重复上期号码很常见",p5_b:"{o}% 的开奖有至少一个号码与上一期相同，随机预期 {e}%。",
+p6_t:"从未有组合中过两次",p6_b:"全部 {n} 期都不相同。最接近的两期是 {d1} 和 {d2}，7 个号码中有 {k} 个相同。",
+p7_t:"生日号码中了要和更多人分",p7_b:"有 {c} 期（{o}%）全部号码都在 31 或以下。这类组合的中奖概率与其他组合一样，但很多人用日期选号，中了奖金要分给更多人。",
+p8_t:"51 和 52 号数据还不够判断",p8_b:"1–52 号码范围只用了 {n} 期。在累积到几百期之前，这一时期的冷热号码排名会大幅波动。",
+g_title:"号码生成器",g_sub:"每行号码的产生方式与官方开奖一样：从号码池随机抽出 7 个号码，抽出后不放回，使用你设备的加密级随机源。筛选条件只会剔除你不想要的组合，不会改变中奖概率。",
+gf_title:"筛选条件",g_lines:"生成行数",g_exlast:"不要最近几期开过的号码",g_exlast_0:"关闭",g_exlast_n:"最近 {n} 期",g_exlast_list:"已剔除：{list}",
+g_excombo:"不要曾经中过头奖的组合",g_sum:"总和保持在 {a} 到 {b}（80% 的开奖落在这个范围）",g_oe:"避免单双极端（0–7、1–6、6–1、7–0）",
+g_run:"不要 3 个或以上连号（例如 14、15、16）",g_bday:"避免“生日组合”（全部号码 31 或以下）",
+g_grid:"自选号码",g_grid_help:"点一下：必定包含；点两下：必定不要；点三下：取消。",lg_inc:"必定包含",lg_exc:"必定不要",
+g_pass:"全部 {t} 个可能组合之中，约 {p}% 符合你的筛选条件。",g_pass0:"没有组合能符合这些条件，请放宽其中一项。",
+g_draw:"开始摇号",g_drawing:"摇号中…",g_again:"再摇一次",line:"第 {n} 行",copy:"复制号码",copied:"已复制",g_empty:"你的号码会显示在这里。",
+g_err:"找不到足够符合所有条件的组合，请放宽其中一项再试。",g_max:"最多只能指定 6 个必定包含的号码。",sum_lbl:"总和 {s}",oe_lbl:"{o} 单 {e} 双",
+foot_ind:"DrawNight 是独立网站，与 OLG、BCLC、WCLC、Loto-Québec、Atlantic Lottery 及 Interprovincial Lottery Corporation 没有关联，也未获其认可。如本站资料与官方结果有出入，一律以官方结果为准。",
+foot_play:"彩票开奖是随机的，任何分析或生成器都不能提高中奖概率。你必须达到所在省份的法定年龄才可购买彩票。请设定预算，量力而行。",
+foot_src:"开奖结果整理自各官方彩票机构公布的资料，并与公开资料库核对。"},
+
+pa:{
+nav_history:"ਨਤੀਜੇ",nav_analysis:"ਵਿਸ਼ਲੇਸ਼ਣ",nav_patterns:"ਪੈਟਰਨ",nav_generator:"ਨੰਬਰ ਜਨਰੇਟਰ",
+hero_kicker:"Lotto Max ਦਾ ਸੁਤੰਤਰ ਡਾਟਾ",hero_title:"2009 ਤੋਂ ਹਰ ਡਰਾਅ। ਤੁਹਾਡੀ ਅਗਲੀ ਲਾਈਨ ਲਈ ਇੱਕ ਨਿਰਪੱਖ ਮਸ਼ੀਨ।",hero_latest:"ਤਾਜ਼ਾ ਡਰਾਅ",bonus:"ਬੋਨਸ",
+next_draw:"ਅਗਲਾ ਡਰਾਅ",tonight:"ਅੱਜ ਰਾਤ",draws_on_file:"ਦਰਜ ਡਰਾਅ",pool_now:"ਖੇਡ ਵਿੱਚ ਨੰਬਰ",odds_line:"ਪ੍ਰਤੀ ਲਾਈਨ ਜੈਕਪਾਟ ਦੀ ਸੰਭਾਵਨਾ",
+data_through:"ਡਾਟਾ {date} ਤੱਕ",stale:"{n} ਤਾਜ਼ਾ ਡਰਾਅ ਅਜੇ ਲੋਡ ਨਹੀਂ ਹੋਏ। ਅਗਲੇ ਅੱਪਡੇਟ ਤੋਂ ਬਾਅਦ ਦਿਖਾਈ ਦੇਣਗੇ।",
+h_title:"ਪਿਛਲੇ ਨਤੀਜੇ",h_sub:"ਸਭ ਤੋਂ ਤਾਜ਼ਾ 10 ਡਰਾਅ। ਫਿਲਟਰ ਵਰਤ ਕੇ 25 ਸਤੰਬਰ 2009 ਤੱਕ ਦਾ ਕੋਈ ਵੀ ਡਰਾਅ ਦੇਖੋ।",
+f_year:"ਸਾਲ",all:"ਸਾਰੇ",f_day:"ਡਰਾਅ ਦਾ ਦਿਨ",tue:"ਮੰਗਲਵਾਰ",fri:"ਸ਼ੁੱਕਰਵਾਰ",f_from:"ਤੋਂ",f_to:"ਤੱਕ",f_nums:"ਇਹ ਨੰਬਰ ਸ਼ਾਮਲ ਹੋਣ",f_nums_ph:"ਜਿਵੇਂ 7, 23",reset:"ਰੀਸੈੱਟ",
+col_date:"ਤਾਰੀਖ",col_numbers:"ਜੇਤੂ ਨੰਬਰ + ਬੋਨਸ",col_sum:"ਜੋੜ",col_oe:"ਟਾਂਕ : ਜਿਸਤ",
+h_count:"{b} ਵਿੱਚੋਂ {a} ਡਰਾਅ ਦਿਖਾਏ ਜਾ ਰਹੇ ਹਨ",more:"10 ਹੋਰ ਦਿਖਾਓ",show_all:"ਸਾਰੇ {b} ਦਿਖਾਓ",none:"ਇਨ੍ਹਾਂ ਫਿਲਟਰਾਂ ਨਾਲ ਕੋਈ ਡਰਾਅ ਨਹੀਂ ਮਿਲਿਆ।",
+a_title:"ਵਿਸ਼ਲੇਸ਼ਣ",a_sub:"ਸਮਾਂ ਅਤੇ ਸਵਾਲ ਚੁਣੋ। Lotto Max ਨੇ ਆਪਣੇ ਨੰਬਰਾਂ ਦੀ ਗਿਣਤੀ ਦੋ ਵਾਰ ਬਦਲੀ ਹੈ, ਇਸ ਲਈ ਇੱਕੋ ਦੌਰ ਦੀ ਤੁਲਨਾ ਕਰੋ।",
+scope:"ਸਮਾਂ",sc_cur:"ਮੌਜੂਦਾ ਨਿਯਮ, 1–52 (14 ਅਪ੍ਰੈਲ 2026 ਤੋਂ)",sc_e50:"1–50 ਦੌਰ (ਮਈ 2019 – ਅਪ੍ਰੈਲ 2026)",sc_e49:"1–49 ਦੌਰ (2009 – ਮਈ 2019)",sc_all:"2009 ਤੋਂ ਸਾਰੇ ਡਰਾਅ",sc_l50:"ਪਿਛਲੇ 50 ਡਰਾਅ",sc_l100:"ਪਿਛਲੇ 100 ਡਰਾਅ",
+inc_bonus:"ਬੋਨਸ ਨੰਬਰ ਵੀ ਗਿਣੋ",
+v_freq:"ਸਭ ਤੋਂ ਵੱਧ ਨਿਕਲੇ",v_gap:"ਲੰਮੇ ਸਮੇਂ ਤੋਂ ਨਹੀਂ ਨਿਕਲੇ",v_pairs:"ਆਮ ਜੋੜੇ",v_oe:"ਟਾਂਕ / ਜਿਸਤ",v_sum:"ਨੰਬਰਾਂ ਦਾ ਜੋੜ",v_rep:"ਦੁਹਰਾਅ ਅਤੇ ਲਗਾਤਾਰ ਨੰਬਰ",
+n_draws:"ਇਸ ਸਮੇਂ ਵਿੱਚ {n} ਡਰਾਅ",freq_cap:"ਹਰ ਨੰਬਰ ਕਿੰਨੇ ਫ਼ੀਸਦੀ ਡਰਾਅ ਵਿੱਚ ਨਿਕਲਿਆ। ਚਿੱਟੀ ਲਕੀਰ ਦੱਸਦੀ ਹੈ ਕਿ ਨਿਰੋਲ ਇਤਫ਼ਾਕ ਨਾਲ ਕਿੰਨਾ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ।",
+hot:"ਸਭ ਤੋਂ ਵੱਧ ਨਿਕਲੇ",cold:"ਸਭ ਤੋਂ ਘੱਟ ਨਿਕਲੇ",tip_freq:"ਨੰਬਰ {n}: {m} ਵਿੱਚੋਂ {c} ਡਰਾਅ ਵਿੱਚ ਨਿਕਲਿਆ ({p}%)। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+gap_cap:"ਹਰ ਨੰਬਰ ਆਖ਼ਰੀ ਵਾਰ ਕਿੰਨੇ ਡਰਾਅ ਪਹਿਲਾਂ ਨਿਕਲਿਆ, ਸਭ ਤੋਂ ਲੰਮੀ ਉਡੀਕ ਪਹਿਲਾਂ।",gap_never:"ਇਸ ਸਮੇਂ ਵਿੱਚ ਕਦੇ ਨਹੀਂ ਨਿਕਲੇ",gap_none:"ਹਰ ਨੰਬਰ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਵਾਰ ਨਿਕਲਿਆ ਹੈ।",gap_unit:"{g} ਡਰਾਅ ਪਹਿਲਾਂ",
+gap_note51:"51 ਅਤੇ 52 ਨੰਬਰ 14 ਅਪ੍ਰੈਲ 2026 ਨੂੰ ਖੇਡ ਵਿੱਚ ਆਏ, ਇਸ ਲਈ ਉਹ ਪਹਿਲੇ ਡਰਾਅ ਵਿੱਚ ਨਹੀਂ ਹੋ ਸਕਦੇ।",
+pairs_t:"ਚੋਟੀ ਦੇ ਜੋੜੇ",trip_t:"ਚੋਟੀ ਦੇ ਤਿੰਨ-ਨੰਬਰ ਸਮੂਹ",pairs_cap:"ਸਭ ਤੋਂ ਵੱਧ ਇਕੱਠੇ ਨਿਕਲਣ ਵਾਲੇ ਨੰਬਰ। {m} ਡਰਾਅ ਵਿੱਚ ਕੋਈ ਵੀ ਜੋੜਾ ਲਗਭਗ {e} ਵਾਰ ਆਉਣ ਦੀ ਉਮੀਦ ਹੈ, ਅਤੇ ਕੁਝ ਜੋੜੇ ਸਿਰਫ਼ ਕਿਸਮਤ ਨਾਲ ਅੱਗੇ ਹੁੰਦੇ ਹਨ।",
+oe_cap:"7 ਨੰਬਰਾਂ ਵਿੱਚੋਂ ਕਿੰਨੇ ਟਾਂਕ ਸਨ। ਡੰਡੇ ਅਸਲ ਡਰਾਅ ਦਿਖਾਉਂਦੇ ਹਨ, ਚਿੱਟੀਆਂ ਲਕੀਰਾਂ ਇਤਫ਼ਾਕ।",odd_n:"{k} ਟਾਂਕ",tip_dist:"{l}: {p}% ਡਰਾਅ। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+sum_cap:"7 ਜੇਤੂ ਨੰਬਰਾਂ ਦਾ ਕੁੱਲ ਜੋੜ। ਇਸ ਸਮੇਂ ਦੇ 80% ਡਰਾਅ {a} ਅਤੇ {b} ਦੇ ਵਿਚਕਾਰ ਰਹੇ।",tip_sum:"ਜੋੜ {l}: {c} ਡਰਾਅ ({p}%)",
+rep_cap:"ਹਰ ਡਰਾਅ ਦੇ ਕਿੰਨੇ ਨੰਬਰ ਪਿਛਲੇ ਡਰਾਅ ਨਾਲ ਮਿਲਦੇ ਸਨ।",rep_n:"{k} ਦੁਹਰਾਏ",rep_cons:"{p}% ਡਰਾਅ ਵਿੱਚ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਲਗਾਤਾਰ ਜੋੜਾ ਸੀ, ਜਿਵੇਂ 23 ਅਤੇ 24। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+observed:"ਅਸਲ ਡਰਾਅ",expected:"ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ",
+p_title:"Claude ਨੂੰ ਕੀ ਮਿਲਿਆ",p_sub:"Claude ਨੇ ਸਾਰੇ {n} ਡਰਾਅ ਪੈਟਰਨਾਂ ਲਈ ਪਰਖੇ। ਸੰਖੇਪ ਵਿੱਚ: ਇਹ ਨਿਰਪੱਖ ਬੇਤਰਤੀਬ ਡਰਾਅ ਵਾਂਗ ਹੀ ਹਨ। ਹੇਠਾਂ ਦਿੱਤੇ ਰੁਝਾਨ ਸੱਚੇ ਹਨ, ਪਰ ਬੇਤਰਤੀਬੀ ਇਸੇ ਤਰ੍ਹਾਂ ਦੀ ਦਿਖਦੀ ਹੈ, ਅਤੇ ਇਨ੍ਹਾਂ ਵਿੱਚੋਂ ਕੋਈ ਵੀ ਅਗਲੇ ਡਰਾਅ ਦੀ ਭਵਿੱਖਬਾਣੀ ਨਹੀਂ ਕਰਦਾ।",
+verdict_ok:"ਇਤਫ਼ਾਕ ਨਾਲ ਮੇਲ",verdict_watch:"ਛੋਟਾ ਨਮੂਨਾ",
+p1_t:"ਕਿਸੇ ਨੰਬਰ ਨੂੰ ਤਰਜੀਹ ਨਹੀਂ",p1_b:"ਕਾਈ-ਸਕੁਏਅਰ ਟੈਸਟ ਹਰ ਨੰਬਰ ਦੇ ਨਿਕਲਣ ਦੀ ਗਿਣਤੀ ਦੀ ਬਰਾਬਰ ਵੰਡ ਨਾਲ ਤੁਲਨਾ ਕਰਦਾ ਹੈ। p-ਮੁੱਲ: 1–49 ਦੌਰ {a}, 1–50 ਦੌਰ {b}, 1–52 ਦੌਰ {c}। 0.05 ਤੋਂ ਉੱਪਰ ਦਾ ਮਤਲਬ ਪੱਖਪਾਤ ਦਾ ਕੋਈ ਸੰਕੇਤ ਨਹੀਂ।",
+p2_t:"ਜੋੜ ਵਿਚਕਾਰ ਇਕੱਠੇ ਹੁੰਦੇ ਹਨ",p2_b:"2019 ਤੋਂ 80% ਡਰਾਅ ਦਾ ਜੋੜ {a} ਅਤੇ {b} ਦੇ ਵਿਚਕਾਰ ਰਿਹਾ। ਇਹ ਗਣਿਤ ਹੈ: ਵਿਚਕਾਰਲੇ ਜੋੜ ਬਣਾਉਣ ਵਾਲੇ ਸੁਮੇਲ ਸਿਰੇ ਵਾਲਿਆਂ ਨਾਲੋਂ ਕਿਤੇ ਵੱਧ ਹਨ।",
+p3_t:"ਟਾਂਕ ਅਤੇ ਜਿਸਤ ਅਕਸਰ 3–4 ਵੰਡੇ ਜਾਂਦੇ ਹਨ",p3_b:"{o}% ਡਰਾਅ ਵਿੱਚ 3 ਜਾਂ 4 ਟਾਂਕ ਨੰਬਰ ਸਨ। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+p4_t:"ਲਗਾਤਾਰ ਨੰਬਰ ਆਮ ਗੱਲ ਹੈ",p4_b:"{o}% ਡਰਾਅ ਵਿੱਚ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਲਗਾਤਾਰ ਜੋੜਾ ਸੀ। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+p5_t:"ਪਿਛਲੇ ਡਰਾਅ ਦਾ ਨੰਬਰ ਦੁਹਰਾਉਣਾ ਆਮ ਹੈ",p5_b:"{o}% ਡਰਾਅ ਵਿੱਚ ਪਿਛਲੇ ਡਰਾਅ ਦਾ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਨੰਬਰ ਦੁਬਾਰਾ ਆਇਆ। ਇਤਫ਼ਾਕ ਅਨੁਸਾਰ {e}%।",
+p6_t:"ਕੋਈ ਸੁਮੇਲ ਦੋ ਵਾਰ ਨਹੀਂ ਜਿੱਤਿਆ",p6_b:"ਸਾਰੇ {n} ਡਰਾਅ ਵੱਖਰੇ ਹਨ। ਸਭ ਤੋਂ ਨੇੜਲੇ ਦੋ, {d1} ਅਤੇ {d2}, ਵਿੱਚ 7 ਵਿੱਚੋਂ {k} ਨੰਬਰ ਸਾਂਝੇ ਸਨ।",
+p7_t:"ਜਨਮਦਿਨ ਵਾਲੀਆਂ ਲਾਈਨਾਂ ਜਿੱਤਣ 'ਤੇ ਇਨਾਮ ਵੰਡਾਉਂਦੀਆਂ ਹਨ",p7_b:"{c} ਡਰਾਅ ({o}%) ਵਿੱਚ ਸਿਰਫ਼ 31 ਤੱਕ ਦੇ ਨੰਬਰ ਸਨ। ਅਜਿਹੀਆਂ ਲਾਈਨਾਂ ਦੀ ਸੰਭਾਵਨਾ ਬਾਕੀਆਂ ਜਿੰਨੀ ਹੀ ਹੈ, ਪਰ ਬਹੁਤ ਲੋਕ ਤਾਰੀਖਾਂ ਚੁਣਦੇ ਹਨ, ਇਸ ਲਈ ਇਨਾਮ ਵੱਧ ਲੋਕਾਂ ਵਿੱਚ ਵੰਡਿਆ ਜਾਂਦਾ ਹੈ।",
+p8_t:"51 ਅਤੇ 52 ਬਾਰੇ ਅਜੇ ਕਹਿਣਾ ਜਲਦੀ ਹੈ",p8_b:"1–52 ਦੇ ਨੰਬਰਾਂ ਨਾਲ ਸਿਰਫ਼ {n} ਡਰਾਅ ਹੋਏ ਹਨ। ਕੁਝ ਸੌ ਡਰਾਅ ਹੋਣ ਤੱਕ ਇਸ ਦੌਰ ਦੀਆਂ ਗਰਮ ਅਤੇ ਠੰਢੇ ਨੰਬਰਾਂ ਦੀਆਂ ਸੂਚੀਆਂ ਬਹੁਤ ਬਦਲਣਗੀਆਂ।",
+g_title:"ਨੰਬਰ ਜਨਰੇਟਰ",g_sub:"ਹਰ ਲਾਈਨ ਅਧਿਕਾਰਤ ਡਰਾਅ ਵਾਂਗ ਕੱਢੀ ਜਾਂਦੀ ਹੈ: ਸੱਤ ਨੰਬਰ ਬੇਤਰਤੀਬ ਢੰਗ ਨਾਲ, ਬਿਨਾਂ ਦੁਹਰਾਏ, ਤੁਹਾਡੇ ਡਿਵਾਈਸ ਦੇ ਕ੍ਰਿਪਟੋਗ੍ਰਾਫਿਕ ਰੈਂਡਮ ਸਰੋਤ ਨਾਲ। ਫਿਲਟਰ ਸਿਰਫ਼ ਉਹ ਲਾਈਨਾਂ ਹਟਾਉਂਦੇ ਹਨ ਜੋ ਤੁਸੀਂ ਨਹੀਂ ਚਾਹੁੰਦੇ। ਇਹ ਜਿੱਤਣ ਦੀ ਸੰਭਾਵਨਾ ਨਹੀਂ ਬਦਲਦੇ।",
+gf_title:"ਫਿਲਟਰ",g_lines:"ਕਿੰਨੀਆਂ ਲਾਈਨਾਂ",g_exlast:"ਹਾਲੀਆ ਡਰਾਅ ਦੇ ਨੰਬਰ ਛੱਡੋ",g_exlast_0:"ਬੰਦ",g_exlast_n:"ਪਿਛਲੇ {n} ਡਰਾਅ",g_exlast_list:"ਛੱਡੇ ਗਏ: {list}",
+g_excombo:"ਪਹਿਲਾਂ ਜਿੱਤ ਚੁੱਕਾ ਕੋਈ ਵੀ ਸੁਮੇਲ ਛੱਡੋ",g_sum:"ਜੋੜ {a} ਅਤੇ {b} ਦੇ ਵਿਚਕਾਰ ਰੱਖੋ, ਜਿੱਥੇ 80% ਡਰਾਅ ਆਉਂਦੇ ਹਨ",g_oe:"ਇੱਕ-ਪਾਸੜ ਟਾਂਕ/ਜਿਸਤ ਵੰਡ ਤੋਂ ਬਚੋ (0–7, 1–6, 6–1, 7–0)",
+g_run:"3 ਜਾਂ ਵੱਧ ਲਗਾਤਾਰ ਨੰਬਰ ਨਹੀਂ (ਜਿਵੇਂ 14, 15, 16)",g_bday:"ਸਿਰਫ਼ ਜਨਮਦਿਨ ਵਾਲੀਆਂ ਲਾਈਨਾਂ ਤੋਂ ਬਚੋ (ਸਾਰੇ ਨੰਬਰ 31 ਜਾਂ ਘੱਟ)",
+g_grid:"ਤੁਹਾਡੇ ਨੰਬਰ",g_grid_help:"ਇੱਕ ਵਾਰ ਦਬਾਓ: ਹਮੇਸ਼ਾ ਸ਼ਾਮਲ; ਦੋ ਵਾਰ: ਕਦੇ ਨਹੀਂ; ਤੀਜੀ ਵਾਰ: ਹਟਾਓ।",lg_inc:"ਹਮੇਸ਼ਾ ਸ਼ਾਮਲ",lg_exc:"ਕਦੇ ਸ਼ਾਮਲ ਨਹੀਂ",
+g_pass:"ਸਾਰੀਆਂ {t} ਸੰਭਵ ਲਾਈਨਾਂ ਵਿੱਚੋਂ ਲਗਭਗ {p}% ਤੁਹਾਡੇ ਫਿਲਟਰ ਪਾਸ ਕਰਦੀਆਂ ਹਨ।",g_pass0:"ਕੋਈ ਲਾਈਨ ਇਹ ਫਿਲਟਰ ਪਾਸ ਨਹੀਂ ਕਰ ਸਕਦੀ। ਕੋਈ ਇੱਕ ਢਿੱਲਾ ਕਰੋ।",
+g_draw:"ਨੰਬਰ ਕੱਢੋ",g_drawing:"ਡਰਾਅ ਹੋ ਰਿਹਾ ਹੈ…",g_again:"ਦੁਬਾਰਾ ਕੱਢੋ",line:"ਲਾਈਨ {n}",copy:"ਲਾਈਨਾਂ ਕਾਪੀ ਕਰੋ",copied:"ਕਾਪੀ ਹੋ ਗਿਆ",g_empty:"ਤੁਹਾਡੀਆਂ ਲਾਈਨਾਂ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੀਆਂ।",
+g_err:"ਸਾਰੇ ਫਿਲਟਰ ਪਾਸ ਕਰਨ ਵਾਲੀਆਂ ਕਾਫ਼ੀ ਲਾਈਨਾਂ ਨਹੀਂ ਮਿਲੀਆਂ। ਕੋਈ ਇੱਕ ਢਿੱਲਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",g_max:"ਤੁਸੀਂ ਵੱਧ ਤੋਂ ਵੱਧ 6 ਨੰਬਰ ਪੱਕੇ ਕਰ ਸਕਦੇ ਹੋ।",sum_lbl:"ਜੋੜ {s}",oe_lbl:"{o} ਟਾਂਕ, {e} ਜਿਸਤ",
+foot_ind:"DrawNight ਇੱਕ ਸੁਤੰਤਰ ਸਾਈਟ ਹੈ। ਇਸ ਦਾ OLG, BCLC, WCLC, Loto-Québec, Atlantic Lottery ਜਾਂ Interprovincial Lottery Corporation ਨਾਲ ਕੋਈ ਸੰਬੰਧ ਨਹੀਂ ਅਤੇ ਨਾ ਹੀ ਉਨ੍ਹਾਂ ਵੱਲੋਂ ਮਨਜ਼ੂਰਸ਼ੁਦਾ ਹੈ। ਕੋਈ ਫ਼ਰਕ ਹੋਣ 'ਤੇ ਅਧਿਕਾਰਤ ਨਤੀਜੇ ਹੀ ਮੰਨੇ ਜਾਣਗੇ।",
+foot_play:"ਲਾਟਰੀ ਡਰਾਅ ਬੇਤਰਤੀਬ ਹੁੰਦੇ ਹਨ। ਕੋਈ ਵਿਸ਼ਲੇਸ਼ਣ ਜਾਂ ਜਨਰੇਟਰ ਜਿੱਤਣ ਦੀ ਸੰਭਾਵਨਾ ਨਹੀਂ ਵਧਾ ਸਕਦਾ। ਖੇਡਣ ਲਈ ਤੁਹਾਡੀ ਉਮਰ ਤੁਹਾਡੇ ਸੂਬੇ ਦੀ ਕਾਨੂੰਨੀ ਉਮਰ ਜਿੰਨੀ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ। ਬਜਟ ਤੈਅ ਕਰੋ ਅਤੇ ਉਸੇ ਵਿੱਚ ਰਹੋ।",
+foot_src:"ਨਤੀਜੇ ਅਧਿਕਾਰਤ ਲਾਟਰੀ ਕਾਰਪੋਰੇਸ਼ਨਾਂ ਦੀਆਂ ਸੂਚਨਾਵਾਂ ਤੋਂ ਇਕੱਠੇ ਕੀਤੇ ਅਤੇ ਜਨਤਕ ਰਿਕਾਰਡਾਂ ਨਾਲ ਮਿਲਾਏ ਗਏ ਹਨ।"},
+
+hi:{
+nav_history:"नतीजे",nav_analysis:"विश्लेषण",nav_patterns:"पैटर्न",nav_generator:"नंबर जनरेटर",
+hero_kicker:"Lotto Max का स्वतंत्र डेटा",hero_title:"2009 से हर ड्रॉ। आपकी अगली लाइन के लिए एक निष्पक्ष मशीन।",hero_latest:"ताज़ा ड्रॉ",bonus:"बोनस",
+next_draw:"अगला ड्रॉ",tonight:"आज रात",draws_on_file:"दर्ज ड्रॉ",pool_now:"खेल में नंबर",odds_line:"प्रति लाइन जैकपॉट की संभावना",
+data_through:"डेटा {date} तक",stale:"{n} ताज़ा ड्रॉ अभी लोड नहीं हुए हैं। अगले अपडेट के बाद दिखेंगे।",
+h_title:"पिछले नतीजे",h_sub:"सबसे ताज़ा 10 ड्रॉ। फ़िल्टर से 25 सितंबर 2009 तक का कोई भी ड्रॉ देखें।",
+f_year:"वर्ष",all:"सभी",f_day:"ड्रॉ का दिन",tue:"मंगलवार",fri:"शुक्रवार",f_from:"से",f_to:"तक",f_nums:"ये नंबर शामिल हों",f_nums_ph:"जैसे 7, 23",reset:"रीसेट",
+col_date:"तारीख",col_numbers:"विजेता नंबर + बोनस",col_sum:"योग",col_oe:"विषम : सम",
+h_count:"{b} में से {a} ड्रॉ दिखाए जा रहे हैं",more:"10 और दिखाएँ",show_all:"सभी {b} दिखाएँ",none:"इन फ़िल्टर से कोई ड्रॉ नहीं मिला।",
+a_title:"विश्लेषण",a_sub:"अवधि और सवाल चुनें। Lotto Max ने अपने नंबरों की संख्या दो बार बदली है, इसलिए एक ही दौर की तुलना करें।",
+scope:"अवधि",sc_cur:"मौजूदा नियम, 1–52 (14 अप्रैल 2026 से)",sc_e50:"1–50 दौर (मई 2019 – अप्रैल 2026)",sc_e49:"1–49 दौर (2009 – मई 2019)",sc_all:"2009 से सभी ड्रॉ",sc_l50:"पिछले 50 ड्रॉ",sc_l100:"पिछले 100 ड्रॉ",
+inc_bonus:"बोनस नंबर भी गिनें",
+v_freq:"सबसे ज़्यादा निकले",v_gap:"लंबे समय से नहीं निकले",v_pairs:"आम जोड़ियाँ",v_oe:"विषम / सम",v_sum:"नंबरों का योग",v_rep:"दोहराव और लगातार नंबर",
+n_draws:"इस अवधि में {n} ड्रॉ",freq_cap:"हर नंबर कितने प्रतिशत ड्रॉ में निकला। सफ़ेद रेखा बताती है कि शुद्ध संयोग से कितना होना चाहिए।",
+hot:"सबसे ज़्यादा निकले",cold:"सबसे कम निकले",tip_freq:"नंबर {n}: {m} में से {c} ड्रॉ में निकला ({p}%)। संयोग के अनुसार {e}%।",
+gap_cap:"हर नंबर आख़िरी बार कितने ड्रॉ पहले निकला, सबसे लंबा इंतज़ार पहले।",gap_never:"इस अवधि में कभी नहीं निकले",gap_none:"हर नंबर कम से कम एक बार निकला है।",gap_unit:"{g} ड्रॉ पहले",
+gap_note51:"51 और 52 नंबर 14 अप्रैल 2026 को खेल में आए, इसलिए वे पहले के ड्रॉ में नहीं हो सकते।",
+pairs_t:"शीर्ष जोड़ियाँ",trip_t:"शीर्ष तिकड़ियाँ",pairs_cap:"सबसे ज़्यादा साथ निकलने वाले नंबर। {m} ड्रॉ में किसी भी जोड़ी के लगभग {e} बार आने की उम्मीद है, और कुछ जोड़ियाँ सिर्फ़ किस्मत से आगे रहती हैं।",
+oe_cap:"7 नंबरों में से कितने विषम थे। पट्टियाँ असली ड्रॉ दिखाती हैं, सफ़ेद रेखाएँ संयोग।",odd_n:"{k} विषम",tip_dist:"{l}: {p}% ड्रॉ। संयोग के अनुसार {e}%।",
+sum_cap:"7 विजेता नंबरों का कुल योग। इस अवधि के 80% ड्रॉ {a} और {b} के बीच रहे।",tip_sum:"योग {l}: {c} ड्रॉ ({p}%)",
+rep_cap:"हर ड्रॉ के कितने नंबर पिछले ड्रॉ से मिलते थे।",rep_n:"{k} दोहराए गए",rep_cons:"{p}% ड्रॉ में कम से कम एक लगातार जोड़ी थी, जैसे 23 और 24। संयोग के अनुसार {e}%।",
+observed:"असली ड्रॉ",expected:"संयोग के अनुसार",
+p_title:"Claude को क्या मिला",p_sub:"Claude ने सभी {n} ड्रॉ में पैटर्न की जाँच की। संक्षेप में: ये निष्पक्ष यादृच्छिक ड्रॉ जैसे ही हैं। नीचे दिए रुझान सच हैं, लेकिन यादृच्छिकता ऐसी ही दिखती है, और इनमें से कोई भी अगले ड्रॉ की भविष्यवाणी नहीं करता।",
+verdict_ok:"संयोग से मेल",verdict_watch:"छोटा नमूना",
+p1_t:"किसी नंबर को तरजीह नहीं",p1_b:"काई-स्क्वेयर परीक्षण हर नंबर के निकलने की संख्या की बराबर बँटवारे से तुलना करता है। p-मान: 1–49 दौर {a}, 1–50 दौर {b}, 1–52 दौर {c}। 0.05 से ऊपर का मतलब पक्षपात का कोई संकेत नहीं।",
+p2_t:"योग बीच में इकट्ठा होते हैं",p2_b:"2019 से 80% ड्रॉ का योग {a} और {b} के बीच रहा। यह गणित है: बीच के योग बनाने वाले संयोजन सिरे वालों से कहीं ज़्यादा हैं।",
+p3_t:"विषम और सम अक्सर 3–4 में बँटते हैं",p3_b:"{o}% ड्रॉ में 3 या 4 विषम नंबर थे। संयोग के अनुसार {e}%।",
+p4_t:"लगातार नंबर आना सामान्य है",p4_b:"{o}% ड्रॉ में कम से कम एक लगातार जोड़ी थी। संयोग के अनुसार {e}%।",
+p5_t:"पिछले ड्रॉ का नंबर दोहराना आम है",p5_b:"{o}% ड्रॉ में पिछले ड्रॉ का कम से कम एक नंबर फिर आया। संयोग के अनुसार {e}%।",
+p6_t:"कोई संयोजन दो बार नहीं जीता",p6_b:"सभी {n} ड्रॉ अलग हैं। सबसे क़रीबी दो, {d1} और {d2}, में 7 में से {k} नंबर समान थे।",
+p7_t:"जन्मदिन वाली लाइनें जीतने पर इनाम बँटवाती हैं",p7_b:"{c} ड्रॉ ({o}%) में सिर्फ़ 31 तक के नंबर थे। ऐसी लाइनों की संभावना बाकी जितनी ही है, लेकिन बहुत लोग तारीखें चुनते हैं, इसलिए इनाम ज़्यादा लोगों में बँटता है।",
+p8_t:"51 और 52 के बारे में अभी कहना जल्दबाज़ी है",p8_b:"1–52 के नंबरों से सिर्फ़ {n} ड्रॉ हुए हैं। कुछ सौ ड्रॉ होने तक इस दौर की गर्म और ठंडे नंबरों की सूचियाँ बहुत बदलेंगी।",
+g_title:"नंबर जनरेटर",g_sub:"हर लाइन आधिकारिक ड्रॉ की तरह निकाली जाती है: सात नंबर यादृच्छिक रूप से, बिना दोहराए, आपके डिवाइस के क्रिप्टोग्राफ़िक रैंडम स्रोत से। फ़िल्टर सिर्फ़ वे लाइनें हटाते हैं जो आप नहीं चाहते। ये जीतने की संभावना नहीं बदलते।",
+gf_title:"फ़िल्टर",g_lines:"कितनी लाइनें",g_exlast:"हाल के ड्रॉ के नंबर छोड़ें",g_exlast_0:"बंद",g_exlast_n:"पिछले {n} ड्रॉ",g_exlast_list:"छोड़े गए: {list}",
+g_excombo:"पहले जीत चुका कोई भी संयोजन छोड़ें",g_sum:"योग {a} और {b} के बीच रखें, जहाँ 80% ड्रॉ आते हैं",g_oe:"एकतरफ़ा विषम/सम बँटवारे से बचें (0–7, 1–6, 6–1, 7–0)",
+g_run:"3 या ज़्यादा लगातार नंबर नहीं (जैसे 14, 15, 16)",g_bday:"सिर्फ़ जन्मदिन वाली लाइनों से बचें (सभी नंबर 31 या कम)",
+g_grid:"आपके नंबर",g_grid_help:"एक बार दबाएँ: हमेशा शामिल; दो बार: कभी नहीं; तीसरी बार: हटाएँ।",lg_inc:"हमेशा शामिल",lg_exc:"कभी शामिल नहीं",
+g_pass:"सभी {t} संभव लाइनों में से लगभग {p}% आपके फ़िल्टर पास करती हैं।",g_pass0:"कोई लाइन ये फ़िल्टर पास नहीं कर सकती। किसी एक को ढीला करें।",
+g_draw:"नंबर निकालें",g_drawing:"ड्रॉ हो रहा है…",g_again:"फिर निकालें",line:"लाइन {n}",copy:"लाइनें कॉपी करें",copied:"कॉपी हो गया",g_empty:"आपकी लाइनें यहाँ दिखेंगी।",
+g_err:"सभी फ़िल्टर पास करने वाली पर्याप्त लाइनें नहीं मिलीं। किसी एक को ढीला करके फिर कोशिश करें।",g_max:"आप ज़्यादा से ज़्यादा 6 नंबर पक्के कर सकते हैं।",sum_lbl:"योग {s}",oe_lbl:"{o} विषम, {e} सम",
+foot_ind:"DrawNight एक स्वतंत्र साइट है। इसका OLG, BCLC, WCLC, Loto-Québec, Atlantic Lottery या Interprovincial Lottery Corporation से कोई संबंध नहीं है और न ही यह उनके द्वारा अनुमोदित है। कोई अंतर होने पर आधिकारिक नतीजे ही मान्य होंगे।",
+foot_play:"लॉटरी ड्रॉ यादृच्छिक होते हैं। कोई विश्लेषण या जनरेटर जीतने की संभावना नहीं बढ़ा सकता। खेलने के लिए आपकी उम्र आपके प्रांत की कानूनी उम्र जितनी होनी चाहिए। बजट तय करें और उसी में रहें।",
+foot_src:"नतीजे आधिकारिक लॉटरी निगमों की सूचनाओं से संकलित और सार्वजनिक अभिलेखों से मिलाए गए हैं।"}
+};
+
+const RAW=[[20090925,5,17,19,25,31,38,46,4],[20091002,8,27,28,29,31,32,35,11],[20091009,5,15,25,38,42,46,47,26],[20091016,4,10,18,20,31,35,44,29],[20091023,4,7,10,12,23,25,36,18],[20091030,6,9,10,14,17,18,19,46],[20091106,2,7,8,11,16,17,18,12],[20091113,8,18,27,28,38,41,48,36],[20091120,2,8,28,30,36,39,42,24],[20091127,11,15,24,26,37,38,43,17],[20091204,1,6,13,19,32,35,40,7],[20091211,1,4,5,7,22,29,48,13],[20091218,8,10,15,17,33,34,35,13],[20091225,8,9,12,13,29,30,31,47],[20100101,7,9,13,18,27,33,44,15],[20100108,8,17,21,23,24,28,39,31],[20100115,12,17,22,30,34,43,49,48],[20100122,17,26,30,32,34,39,41,49],[20100129,16,17,22,24,40,41,47,45],[20100205,10,19,25,29,39,41,42,21],[20100212,9,12,17,23,34,42,47,37],[20100219,4,23,27,32,35,43,47,24],[20100226,2,27,30,32,35,36,38,39],[20100305,5,8,18,22,32,39,45,19],[20100312,17,18,19,21,32,40,49,6],[20100319,1,3,6,34,37,42,45,27],[20100326,3,11,12,16,34,36,37,18],[20100402,4,9,12,15,28,29,43,17],[20100409,11,16,29,30,31,33,42,24],[20100416,6,7,17,20,32,44,49,46],[20100423,8,11,16,21,24,28,41,37],[20100430,1,3,4,5,16,32,33,41],[20100507,3,6,10,14,19,25,33,1],[20100514,7,17,19,23,31,36,41,1],[20100521,14,16,30,35,36,45,49,10],[20100528,11,18,23,24,27,28,39,1],[20100604,3,18,27,30,33,40,45,31],[20100611,2,7,12,25,29,32,35,26],[20100618,5,6,26,29,34,36,43,49],[20100625,5,22,28,31,39,46,48,4],[20100702,9,19,25,26,29,30,44,33],[20100709,9,10,19,24,28,30,31,46],[20100716,10,14,26,34,43,47,48,28],[20100723,17,19,26,29,34,35,38,47],[20100730,5,7,11,40,41,47,48,6],[20100806,1,5,6,32,36,38,44,29],[20100813,19,25,27,29,30,36,46,15],[20100820,4,5,7,8,18,30,35,39],[20100827,3,14,26,27,29,32,34,1],[20100903,12,17,27,28,31,36,48,37],[20100910,4,17,27,32,34,39,47,13],[20100917,2,5,6,43,46,47,48,39],[20100924,9,22,25,30,31,39,42,19],[20101001,10,12,13,25,28,29,41,39],[20101008,3,4,5,8,13,22,33,32],[20101015,3,14,17,25,30,33,39,7],[20101022,12,15,19,20,28,29,39,14],[20101029,2,6,21,26,28,33,47,11],[20101105,7,10,24,30,35,36,39,3],[20101112,13,15,17,18,19,47,49,38],[20101119,4,13,25,29,36,40,48,24],[20101126,12,21,23,27,28,29,37,9],[20101203,1,10,13,26,43,46,49,31],[20101210,7,9,12,20,28,38,44,10],[20101217,1,16,28,29,33,37,47,24],[20101224,8,23,25,26,33,41,43,21],[20101231,2,7,10,22,32,34,38,1],[20110107,2,10,13,15,23,28,49,40],[20110114,2,6,10,12,24,30,37,3],[20110121,2,18,19,29,42,47,49,17],[20110128,7,10,14,20,21,23,31,41],[20110204,1,3,13,18,19,39,48,40],[20110211,4,6,13,19,26,29,47,43],[20110218,3,7,12,16,20,42,48,31],[20110225,3,14,19,30,32,39,46,8],[20110304,3,18,27,29,32,33,35,47],[20110311,2,3,4,20,22,40,43,9],[20110318,2,5,10,21,25,35,49,40],[20110325,1,4,22,25,26,36,46,5],[20110401,5,6,11,12,24,26,34,49],[20110408,13,18,25,41,44,48,49,1],[20110415,3,12,14,15,25,32,49,37],[20110422,7,19,34,35,38,42,46,11],[20110429,1,13,20,24,39,45,47,25],[20110506,6,19,24,25,26,35,36,23],[20110513,7,8,14,32,38,42,44,30],[20110520,7,12,14,18,30,45,47,20],[20110527,5,9,19,20,21,28,30,36],[20110603,8,21,28,32,33,34,48,38],[20110610,8,11,12,25,28,30,33,16],[20110617,2,7,14,16,22,27,47,25],[20110624,2,9,10,15,29,44,48,22],[20110701,15,18,20,28,29,40,47,38],[20110708,17,22,28,38,41,43,45,5],[20110715,3,7,8,12,18,24,41,1],[20110722,4,13,23,28,32,40,42,12],[20110729,1,2,3,17,24,35,36,30],[20110805,11,17,18,20,22,29,45,27],[20110812,4,15,21,30,33,35,47,28],[20110819,4,14,24,41,43,46,49,1],[20110826,6,11,12,14,35,43,44,42],[20110902,2,3,8,13,18,20,23,10],[20110909,6,8,15,20,30,32,42,17],[20110916,12,18,22,24,28,43,49,21],[20110923,8,16,24,27,30,38,40,18],[20110930,5,6,7,12,14,18,25,38],[20111007,12,13,24,25,26,41,43,7],[20111014,1,3,7,19,31,39,49,17],[20111021,6,23,27,30,34,38,45,21],[20111028,2,4,18,20,29,38,41,9],[20111104,5,8,13,15,27,28,37,39],[20111111,5,7,9,25,31,37,39,22],[20111118,8,17,27,28,39,44,49,24],[20111125,8,10,15,24,30,35,49,23],[20111202,23,29,33,34,39,44,48,32],[20111209,3,11,18,19,23,27,44,46],[20111216,11,24,26,31,42,44,46,22],[20111223,3,4,9,25,26,37,39,45],[20111230,2,13,22,28,35,41,42,4],[20120106,1,2,8,13,22,45,46,48],[20120113,6,15,18,26,41,46,48,27],[20120120,9,15,21,23,41,43,44,46],[20120127,8,24,28,34,37,43,45,21],[20120203,2,8,12,14,33,37,47,46],[20120210,1,5,25,35,38,44,47,39],[20120217,1,15,26,28,31,39,49,18],[20120224,6,17,23,24,25,31,38,7],[20120302,4,13,14,15,34,46,47,49],[20120309,7,18,19,29,39,47,48,32],[20120316,5,7,18,24,28,41,49,26],[20120323,6,18,21,23,24,32,48,47],[20120330,3,11,12,19,35,45,47,13],[20120406,15,18,19,25,32,42,49,43],[20120413,2,6,11,12,16,39,45,3],[20120420,14,15,16,19,30,36,46,42],[20120427,3,23,28,40,42,43,45,17],[20120504,3,5,6,25,37,43,45,21],[20120511,1,6,7,24,31,36,39,26],[20120518,3,4,13,15,21,29,48,26],[20120525,1,2,3,6,12,20,41,10],[20120601,4,7,13,24,26,27,43,41],[20120608,9,10,16,24,26,44,48,27],[20120615,8,11,20,28,36,43,47,18],[20120622,1,12,20,22,30,34,38,33],[20120629,10,14,20,28,35,40,42,44],[20120706,14,26,31,34,37,45,48,38],[20120713,3,13,14,23,33,36,45,7],[20120720,4,7,29,35,39,43,44,46],[20120727,2,20,25,26,46,47,48,44],[20120803,1,2,18,26,27,39,42,33],[20120810,2,15,18,19,22,27,49,40],[20120817,18,19,22,27,29,36,47,25],[20120824,2,3,5,22,23,32,33,8],[20120831,5,12,13,28,33,37,43,44],[20120907,11,14,18,20,37,41,46,8],[20120914,2,27,30,31,37,46,47,21],[20120921,7,8,10,11,19,34,45,44],[20120928,5,6,32,33,39,42,47,9],[20121005,1,12,23,27,30,31,37,33],[20121012,5,7,12,15,35,45,47,40],[20121019,1,2,3,15,22,37,41,6],[20121026,3,4,20,25,30,35,48,23],[20121102,1,2,5,26,29,36,47,13],[20121109,8,9,11,22,24,42,46,13],[20121116,1,5,9,19,27,35,48,30],[20121123,6,8,10,17,28,29,38,34],[20121130,3,10,13,23,31,41,45,33],[20121207,5,11,22,29,38,42,49,33],[20121214,3,6,10,33,39,48,49,18],[20121221,7,8,17,18,20,40,41,33],[20121228,1,9,25,28,32,41,48,12],[20130104,3,6,16,23,27,28,34,22],[20130111,2,25,26,37,39,48,49,40],[20130118,8,16,17,28,32,34,47,19],[20130125,1,18,19,29,31,32,46,36],[20130201,5,9,10,32,37,44,46,38],[20130208,3,8,13,30,38,45,47,10],[20130215,14,23,24,25,28,41,45,37],[20130222,5,12,24,31,39,45,49,35],[20130301,1,2,5,6,38,39,46,33],[20130308,9,15,17,28,35,39,41,36],[20130315,9,16,17,19,22,41,43,12],[20130322,7,12,16,19,21,24,47,34],[20130329,8,11,12,13,22,33,47,7],[20130405,2,14,15,17,24,38,40,31],[20130412,3,6,37,40,42,44,48,18],[20130419,2,3,8,20,28,31,34,42],[20130426,10,13,15,18,25,36,47,40],[20130503,4,6,21,26,30,34,35,39],[20130510,3,10,19,21,27,35,36,49],[20130517,8,18,21,27,33,46,49,26],[20130524,9,19,21,24,39,43,48,6],[20130531,5,7,10,15,22,45,47,23],[20130607,5,19,24,34,35,38,43,8],[20130614,2,12,15,18,21,22,25,5],[20130621,2,9,12,13,27,28,36,20],[20130628,2,7,15,38,43,44,47,1],[20130705,5,12,15,39,44,46,49,18],[20130712,14,16,17,36,45,46,48,7],[20130719,3,17,19,20,34,35,43,4],[20130726,5,9,12,18,24,35,42,17],[20130802,2,9,23,29,30,34,43,40],[20130809,6,15,19,26,43,44,49,30],[20130816,2,6,20,22,30,34,49,45],[20130823,5,6,10,17,22,36,48,3],[20130830,6,19,20,25,31,35,36,45],[20130906,1,7,23,36,37,39,41,33],[20130913,2,6,12,15,16,22,49,46],[20130920,2,14,15,24,40,43,44,45],[20130927,10,11,18,24,26,42,47,45],[20131004,12,16,19,20,28,34,42,9],[20131011,7,8,9,16,21,28,48,29],[20131018,10,26,28,33,34,35,40,12],[20131025,13,16,24,29,33,40,49,28],[20131101,11,12,16,22,30,32,49,35],[20131108,7,8,10,15,24,26,41,12],[20131115,1,3,10,15,25,28,31,7],[20131122,2,24,35,38,39,41,48,20],[20131129,3,6,19,31,34,42,45,30],[20131206,3,4,11,18,37,42,44,47],[20131213,6,16,24,32,36,45,47,25],[20131220,2,13,18,24,27,37,43,14],[20131227,1,6,9,11,17,37,39,32],[20140103,7,16,31,35,39,44,48,42],[20140110,12,28,31,38,40,41,45,15],[20140117,4,9,18,32,35,38,40,12],[20140124,7,10,15,23,30,36,44,45],[20140131,6,10,16,27,38,40,45,39],[20140207,13,19,37,38,40,43,48,46],[20140214,6,8,11,16,17,19,24,29],[20140221,1,10,16,23,29,35,39,46],[20140228,4,7,20,22,26,28,29,47],[20140307,1,6,7,16,22,31,33,25],[20140314,3,4,5,7,31,33,40,49],[20140321,1,2,4,21,23,35,40,5],[20140328,8,15,16,21,31,37,39,20],[20140404,19,30,33,34,36,41,48,11],[20140411,1,3,14,33,35,39,45,28],[20140418,9,16,24,30,39,40,45,14],[20140425,3,9,24,25,28,36,40,48],[20140502,6,15,18,19,25,44,46,28],[20140509,5,7,29,35,39,41,49,14],[20140516,12,13,16,30,32,35,37,7],[20140523,3,11,16,24,31,39,43,2],[20140530,2,5,10,11,23,25,31,46],[20140606,3,5,17,30,36,47,49,31],[20140613,12,16,24,29,36,40,47,44],[20140620,12,17,32,36,43,44,49,4],[20140627,4,6,7,16,18,40,46,34],[20140704,5,10,11,20,26,38,46,44],[20140711,1,6,10,16,18,21,31,5],[20140718,1,3,16,33,34,40,42,2],[20140725,7,9,24,30,35,42,43,36],[20140801,1,2,5,10,11,25,34,36],[20140808,6,9,16,19,20,24,30,31],[20140815,9,16,17,27,32,38,47,37],[20140822,13,16,22,26,35,36,39,44],[20140829,1,23,26,33,35,38,42,18],[20140905,3,8,11,20,28,36,38,26],[20140912,5,6,8,13,24,37,46,30],[20140919,4,7,8,10,16,20,36,27],[20140926,2,3,5,18,37,38,46,33],[20141003,7,15,24,25,27,43,47,22],[20141010,5,13,18,28,31,38,44,46],[20141017,18,19,32,36,38,40,43,1],[20141024,8,27,30,32,34,35,42,17],[20141031,3,12,25,30,42,44,45,26],[20141107,1,3,6,8,14,20,30,28],[20141114,2,5,7,13,15,30,38,27],[20141121,6,18,19,26,37,39,47,21],[20141128,3,4,7,12,17,26,34,1],[20141205,10,14,15,16,42,45,48,49],[20141212,2,14,30,34,38,47,48,16],[20141219,3,6,13,17,22,25,43,47],[20141226,15,20,29,39,40,43,46,12],[20150102,8,9,14,19,28,31,46,48],[20150109,3,7,12,18,31,33,35,26],[20150116,6,29,30,31,36,42,45,32],[20150123,1,14,15,18,26,42,48,39],[20150130,10,15,21,28,32,36,37,9],[20150206,1,5,7,13,14,33,46,47],[20150213,6,9,18,22,25,32,44,46],[20150220,26,34,38,41,46,48,49,10],[20150227,4,12,16,27,37,39,44,32],[20150306,2,8,9,10,24,26,41,37],[20150313,2,8,10,15,17,20,24,14],[20150320,7,10,16,35,36,42,45,24],[20150327,3,7,15,23,29,31,45,46],[20150403,10,11,23,28,32,34,41,29],[20150410,7,8,16,18,24,25,46,37],[20150417,7,11,14,15,19,30,41,22],[20150424,3,37,38,40,42,43,46,12],[20150501,6,18,20,37,40,44,46,49],[20150508,1,7,17,27,32,44,48,18],[20150515,16,23,24,25,40,46,47,17],[20150522,1,4,21,24,29,30,46,25],[20150529,1,30,38,39,44,45,47,43],[20150605,2,10,13,16,30,33,48,44],[20150612,4,7,11,19,34,38,48,45],[20150619,7,14,15,16,21,30,41,17],[20150626,2,4,16,23,30,32,46,38],[20150703,1,6,30,40,46,47,49,37],[20150710,12,14,23,25,31,38,40,36],[20150717,23,24,29,36,42,43,49,38],[20150724,2,4,11,19,28,29,38,42],[20150731,2,5,27,32,35,42,46,48],[20150807,5,13,20,37,39,40,41,28],[20150814,1,15,17,25,34,40,41,38],[20150821,3,13,15,22,33,41,49,11],[20150828,2,4,5,17,29,39,41,48],[20150904,7,8,15,19,36,37,41,43],[20150911,21,22,27,30,39,42,44,8],[20150918,13,16,17,21,35,40,46,18],[20150925,1,7,15,18,21,30,45,22],[20151002,10,12,24,26,34,43,47,38],[20151009,8,11,14,23,26,42,47,1],[20151016,9,14,19,21,31,32,40,16],[20151023,2,7,12,28,29,38,48,27],[20151030,2,11,19,38,43,45,49,9],[20151106,1,10,12,20,29,35,47,4],[20151113,7,11,19,38,40,41,42,49],[20151120,12,21,28,34,36,45,48,26],[20151127,4,8,9,20,23,45,46,31],[20151204,8,15,24,25,27,36,43,32],[20151211,7,12,28,34,45,46,48,49],[20151218,6,20,28,29,30,31,46,45],[20151225,5,8,9,12,22,39,45,38],[20160101,6,10,13,14,25,41,46,8],[20160108,13,15,21,24,25,36,48,10],[20160115,7,26,27,31,32,33,42,45],[20160122,20,21,22,34,42,43,45,1],[20160129,5,11,14,17,28,41,47,46],[20160205,6,7,8,9,17,23,30,18],[20160212,19,20,26,31,34,39,48,18],[20160219,2,11,20,22,33,40,43,4],[20160226,6,9,22,23,36,38,47,12],[20160304,4,14,24,41,42,44,48,26],[20160311,9,17,27,30,31,34,42,21],[20160318,6,8,15,24,26,39,44,40],[20160325,1,6,15,32,42,45,46,44],[20160401,5,6,27,28,31,41,45,12],[20160408,9,12,13,14,28,39,41,38],[20160415,1,9,17,19,25,27,38,44],[20160422,13,16,20,35,37,43,49,6],[20160429,11,21,22,24,26,36,43,10],[20160506,1,8,10,24,26,37,45,47],[20160513,3,6,8,17,21,28,34,2],[20160520,16,17,19,22,31,47,49,1],[20160527,1,14,16,20,26,32,34,18],[20160603,12,21,28,37,40,43,47,11],[20160610,5,11,15,26,27,33,39,46],[20160617,1,16,20,29,33,44,46,15],[20160624,2,17,22,24,26,42,48,6],[20160701,10,12,14,28,36,39,45,26],[20160708,1,8,16,25,30,42,48,28],[20160715,19,30,31,36,40,44,49,6],[20160722,9,26,28,32,37,40,45,46],[20160729,11,15,25,26,39,47,49,30],[20160805,4,6,10,20,40,46,47,39],[20160812,5,7,15,18,19,27,28,25],[20160819,19,22,25,32,37,45,47,40],[20160826,3,10,17,19,26,27,42,46],[20160902,1,12,15,22,25,45,48,16],[20160909,4,10,11,27,29,32,41,42],[20160916,7,12,14,15,27,34,44,6],[20160923,3,13,24,36,39,44,45,19],[20160930,4,12,17,21,32,38,42,46],[20161007,8,9,12,24,29,36,37,17],[20161014,14,18,22,25,36,39,44,34],[20161021,33,34,36,42,44,45,47,14],[20161028,3,5,19,29,33,34,44,41],[20161104,4,23,29,36,39,44,46,24],[20161111,8,14,18,20,24,39,46,23],[20161118,7,10,21,24,38,40,49,3],[20161125,2,11,20,22,31,35,47,39],[20161202,5,8,20,21,29,40,47,7],[20161209,11,17,24,26,34,35,39,16],[20161216,2,9,27,32,38,39,43,45],[20161223,1,5,11,26,28,30,41,49],[20161230,5,10,14,19,31,33,47,27],[20170106,10,13,18,19,38,47,48,42],[20170113,2,8,24,30,31,38,40,42],[20170120,4,10,21,28,29,37,45,20],[20170127,1,3,8,22,29,38,47,11],[20170203,8,19,24,28,34,42,48,17],[20170210,11,16,19,22,24,38,41,48],[20170217,5,9,14,24,33,37,46,38],[20170224,1,17,19,23,28,29,47,10],[20170303,3,7,20,25,29,31,44,27],[20170310,1,11,15,20,36,41,47,33],[20170317,2,5,6,7,8,33,45,15],[20170324,16,19,21,32,37,39,45,26],[20170331,1,2,12,15,22,25,41,34],[20170407,8,12,14,34,37,44,48,45],[20170414,23,25,29,30,42,44,45,20],[20170421,3,4,13,16,35,47,49,37],[20170428,10,14,22,36,38,44,45,11],[20170505,11,14,20,22,26,35,43,33],[20170512,11,25,26,28,38,44,45,20],[20170519,8,11,18,25,34,35,38,44],[20170526,14,16,18,21,38,44,49,15],[20170602,11,12,25,28,33,41,43,36],[20170609,7,11,20,21,22,37,47,38],[20170616,1,5,20,33,34,41,42,15],[20170623,2,3,6,22,24,42,46,27],[20170630,7,24,26,36,37,43,44,3],[20170707,4,8,13,16,26,33,38,10],[20170714,2,4,11,17,26,41,42,44],[20170721,2,11,12,25,33,39,44,8],[20170728,9,12,16,24,33,45,47,14],[20170804,1,4,11,17,27,36,37,47],[20170811,13,14,19,26,27,36,37,18],[20170818,2,9,13,16,25,26,45,19],[20170825,18,19,23,34,39,43,46,1],[20170901,1,7,18,28,31,39,48,35],[20170908,1,2,15,16,22,29,41,27],[20170915,15,20,24,30,39,44,46,22],[20170922,2,10,37,38,39,43,47,28],[20170929,1,6,14,23,38,40,47,25],[20171006,10,17,25,27,29,34,38,48],[20171013,8,14,16,17,18,34,41,43],[20171020,1,4,12,27,35,38,46,8],[20171027,1,14,15,16,24,39,49,5],[20171103,16,17,18,20,40,42,43,15],[20171110,5,12,18,26,29,31,37,40],[20171117,3,15,22,23,33,47,49,6],[20171124,5,11,20,22,35,38,46,45],[20171201,26,28,33,38,42,43,47,16],[20171208,1,17,31,33,39,46,49,42],[20171215,8,14,17,27,28,30,46,37],[20171222,13,16,19,21,24,26,30,36],[20171229,22,23,26,35,37,39,47,14],[20180105,1,3,13,15,28,36,49,14],[20180112,1,8,16,19,26,34,41,10],[20180119,9,18,25,30,39,40,43,5],[20180126,7,8,13,19,23,32,40,9],[20180202,3,8,9,24,28,31,44,32],[20180209,6,19,24,25,36,37,39,17],[20180216,5,14,22,23,35,40,49,43],[20180223,13,17,24,32,33,44,45,48],[20180302,7,25,26,28,32,36,37,2],[20180309,13,18,20,26,32,35,47,12],[20180316,13,24,29,31,35,36,42,37],[20180323,7,12,15,23,35,43,49,19],[20180330,1,12,18,19,21,24,41,15],[20180406,7,18,29,30,41,45,46,40],[20180413,1,8,9,22,29,30,32,17],[20180420,6,14,16,22,30,42,45,35],[20180427,8,9,11,17,37,39,41,19],[20180504,1,11,15,16,20,29,39,32],[20180511,11,22,28,33,39,43,47,23],[20180518,4,13,23,30,31,37,43,32],[20180525,7,10,13,19,24,31,41,1],[20180601,2,11,17,18,22,25,39,3],[20180608,12,25,27,29,34,44,45,7],[20180615,18,23,28,37,44,45,47,9],[20180622,3,10,16,28,31,38,47,20],[20180629,3,5,17,23,28,43,46,29],[20180706,1,11,20,32,41,42,44,47],[20180713,1,4,5,22,25,32,34,27],[20180720,6,8,12,19,20,25,49,18],[20180727,8,11,14,17,26,30,36,48],[20180803,9,11,23,33,35,36,42,6],[20180810,2,9,18,33,36,40,49,38],[20180817,12,17,22,27,28,29,35,43],[20180824,3,5,7,11,13,20,29,30],[20180831,2,4,18,19,20,39,44,11],[20180907,3,12,21,34,37,38,41,22],[20180914,1,3,5,10,16,27,43,14],[20180921,3,9,15,16,19,45,48,42],[20180928,25,28,31,36,42,44,49,37],[20181005,8,9,12,20,22,27,30,28],[20181012,18,31,38,45,46,47,48,16],[20181019,10,15,16,17,19,27,38,9],[20181026,2,3,4,8,9,20,30,45],[20181102,9,10,16,23,24,39,49,7],[20181109,2,12,31,34,39,48,49,1],[20181116,11,17,24,34,41,42,48,21],[20181123,1,7,13,14,22,42,48,47],[20181130,5,8,15,20,25,26,47,22],[20181207,2,9,15,23,26,30,41,13],[20181214,6,7,11,21,23,27,41,49],[20181221,7,21,23,25,31,34,45,37],[20181228,5,13,14,16,17,29,49,18],[20190104,7,22,25,26,35,41,45,3],[20190111,8,15,21,28,29,30,39,23],[20190118,3,19,22,30,32,37,40,20],[20190125,6,12,20,24,40,42,47,44],[20190201,2,6,13,19,21,32,40,12],[20190208,18,23,31,32,36,38,43,27],[20190215,1,2,32,37,38,39,45,16],[20190222,6,31,33,34,43,44,46,22],[20190301,2,23,24,29,40,48,49,18],[20190308,2,9,16,17,21,22,32,38],[20190315,6,11,25,31,36,41,49,47],[20190322,1,3,20,21,27,28,44,43],[20190329,10,12,19,22,25,32,42,39],[20190405,1,2,16,21,23,25,28,48],[20190412,2,20,21,30,31,39,45,18],[20190419,2,16,21,33,39,42,47,1],[20190426,9,17,21,23,36,41,48,12],[20190503,2,3,5,12,21,22,37,19],[20190510,16,17,31,34,36,39,41,10],[20190514,9,24,27,33,40,44,48,41],[20190517,4,21,23,39,40,42,50,17],[20190521,2,3,8,18,31,39,50,33],[20190524,9,11,15,19,20,35,41,28],[20190528,4,9,10,23,27,29,37,14],[20190531,6,29,34,39,42,47,50,22],[20190604,7,19,22,28,34,41,42,12],[20190607,4,8,13,23,25,33,39,17],[20190611,18,23,28,32,34,44,50,29],[20190614,4,11,20,22,37,44,49,13],[20190618,1,6,13,15,38,42,49,48],[20190621,11,16,17,20,42,44,50,31],[20190625,2,14,15,23,27,44,45,8],[20190628,7,11,36,37,38,43,46,26],[20190702,6,14,26,31,34,36,45,25],[20190705,1,4,8,28,32,36,43,40],[20190709,10,13,31,32,36,40,41,17],[20190712,3,13,19,25,28,30,37,1],[20190716,11,14,17,21,23,26,36,19],[20190719,1,15,21,29,30,31,33,5],[20190723,4,8,11,16,28,29,44,43],[20190726,11,15,17,20,24,25,50,30],[20190730,4,6,10,15,24,40,43,3],[20190802,11,20,23,24,26,41,44,38],[20190806,19,22,28,30,36,38,39,25],[20190809,10,25,31,34,36,39,45,9],[20190813,1,5,38,39,42,47,49,15],[20190816,22,24,25,26,29,32,46,20],[20190820,9,17,23,37,44,46,48,4],[20190823,5,6,8,15,22,46,47,31],[20190827,5,7,19,28,32,35,44,46],[20190830,5,9,33,36,39,41,44,27],[20190903,6,8,11,13,28,42,48,27],[20190906,4,5,24,25,43,44,50,41],[20190910,1,15,16,20,27,38,50,9],[20190913,4,16,21,32,44,45,50,26],[20190917,2,4,17,39,40,43,46,44],[20190920,9,15,26,36,39,41,47,37],[20190924,3,22,26,32,38,42,43,8],[20190927,3,9,25,26,28,34,38,36],[20191001,1,15,19,31,40,41,43,49],[20191004,20,31,35,36,39,42,44,23],[20191008,18,24,31,38,44,46,50,40],[20191011,1,3,11,13,19,22,46,31],[20191015,17,18,22,27,29,31,34,8],[20191018,3,21,29,37,40,43,44,38],[20191022,1,4,6,9,25,31,43,10],[20191025,6,11,16,18,23,26,40,45],[20191029,10,17,18,22,23,25,34,37],[20191101,10,20,24,25,32,39,46,15],[20191105,5,7,15,18,35,37,45,47],[20191108,3,5,10,18,26,33,46,49],[20191112,1,14,16,22,32,39,45,31],[20191115,15,16,33,36,38,43,49,4],[20191119,5,13,23,25,27,32,44,3],[20191122,5,9,23,29,30,31,37,34],[20191126,13,14,18,22,42,44,47,12],[20191129,3,8,14,15,24,33,48,4],[20191203,2,10,20,30,32,35,50,21],[20191206,9,11,17,19,35,36,43,28],[20191210,7,11,19,30,42,43,50,44],[20191213,2,12,14,15,26,34,39,48],[20191217,19,20,23,29,35,40,47,31],[20191220,14,23,28,29,30,33,48,9],[20191224,1,6,12,13,19,23,38,37],[20191227,13,27,34,36,38,45,50,18],[20191231,3,4,11,19,30,39,40,25],[20200103,8,18,20,24,31,37,39,34],[20200107,3,8,12,14,17,18,29,11],[20200110,10,13,14,24,28,47,48,12],[20200114,5,6,19,23,30,37,48,44],[20200117,5,6,36,39,40,46,48,34],[20200121,7,11,16,21,31,36,44,46],[20200124,2,11,14,21,23,34,36,5],[20200128,4,10,12,27,30,44,46,7],[20200131,2,27,30,39,44,45,49,17],[20200204,3,12,18,25,43,46,50,33],[20200207,21,24,26,31,36,48,49,39],[20200211,14,15,19,22,31,36,39,23],[20200214,14,17,20,34,38,45,49,5],[20200218,3,6,19,23,33,40,45,48],[20200221,4,7,14,37,48,49,50,28],[20200225,15,32,36,40,41,43,48,10],[20200228,21,27,30,32,33,36,46,38],[20200303,10,14,15,25,27,39,48,28],[20200306,2,9,10,34,41,42,47,40],[20200310,5,6,27,37,38,46,48,9],[20200313,7,14,15,35,36,49,50,11],[20200317,4,5,8,15,27,41,48,37],[20200320,9,16,17,18,21,22,27,31],[20200324,2,11,16,18,19,20,25,5],[20200327,3,4,13,14,30,36,41,21],[20200331,5,7,22,29,32,37,39,3],[20200403,5,9,10,25,27,29,38,31],[20200407,5,20,21,22,32,37,41,18],[20200410,3,9,10,14,15,19,20,25],[20200414,3,6,9,22,29,38,39,18],[20200417,2,15,21,29,40,47,50,35],[20200421,9,10,13,21,40,41,43,4],[20200424,8,9,19,26,27,31,46,48],[20200428,9,18,23,36,39,43,48,46],[20200501,3,12,25,36,37,42,49,9],[20200505,25,28,32,41,42,44,45,18],[20200508,3,4,10,11,26,28,40,31],[20200512,11,19,22,26,33,46,48,1],[20200515,7,30,32,40,47,48,50,16],[20200519,22,23,24,25,37,40,49,19],[20200522,9,11,14,21,22,24,41,10],[20200526,5,27,34,37,39,41,47,20],[20200529,5,12,15,23,26,38,41,45],[20200602,8,14,16,17,29,41,42,47],[20200605,1,8,15,16,32,39,40,31],[20200609,4,16,19,32,35,36,38,28],[20200612,1,16,24,28,30,31,47,25],[20200616,1,3,22,30,31,37,40,6],[20200619,3,12,17,22,29,31,48,8],[20200623,2,3,6,13,37,42,46,19],[20200626,8,14,31,36,39,46,47,20],[20200630,11,12,22,33,37,48,49,41],[20200703,3,4,21,33,38,44,45,32],[20200707,9,20,21,22,25,26,37,3],[20200710,17,18,27,38,39,40,47,24],[20200714,3,9,21,35,44,47,48,23],[20200717,5,11,15,18,20,24,46,37],[20200721,7,22,26,35,46,47,49,19],[20200724,17,20,27,29,37,39,41,10],[20200728,7,10,11,25,39,43,48,23],[20200731,8,16,19,22,28,31,38,25],[20200804,18,24,25,30,31,33,48,27],[20200807,9,21,26,28,30,37,44,31],[20200811,9,17,22,33,36,45,46,41],[20200814,3,22,37,39,41,43,44,20],[20200818,1,2,16,32,44,46,50,6],[20200821,1,2,5,11,20,30,39,27],[20200825,1,21,34,38,39,40,46,24],[20200828,5,8,9,28,32,48,50,40],[20200901,2,9,29,30,31,35,37,19],[20200904,7,18,22,26,35,41,50,11],[20200908,6,12,19,27,30,32,44,18],[20200911,4,15,16,17,35,46,50,13],[20200915,1,5,6,24,27,28,32,38],[20200918,2,11,22,25,32,40,44,27],[20200922,8,9,37,38,40,43,49,28],[20200925,1,7,9,28,38,48,50,13],[20200929,4,6,9,15,22,24,28,44],[20201002,7,12,16,26,40,45,49,20],[20201006,4,5,9,19,28,34,44,8],[20201009,4,6,12,30,32,33,34,29],[20201013,3,10,13,19,21,45,49,12],[20201016,1,4,8,10,12,17,41,19],[20201020,8,27,30,44,46,47,50,32],[20201023,2,8,20,21,29,34,37,41],[20201027,2,9,11,29,33,39,44,15],[20201030,19,20,23,31,37,46,48,50],[20201103,5,7,14,21,26,34,49,31],[20201106,7,9,19,20,26,32,35,49],[20201110,4,6,18,27,28,30,40,13],[20201113,3,4,7,19,44,48,49,8],[20201117,6,18,21,30,31,34,38,1],[20201120,11,17,29,33,39,40,42,48],[20201124,6,8,13,27,41,46,47,39],[20201127,9,15,35,41,42,45,46,43],[20201201,1,4,9,15,18,24,31,43],[20201204,5,7,14,23,24,46,47,11],[20201208,5,13,14,21,36,37,43,40],[20201211,9,21,30,33,38,39,46,48],[20201215,1,4,20,33,44,45,49,47],[20201218,2,9,10,22,31,35,49,30],[20201222,4,29,30,37,38,43,44,15],[20201225,8,12,16,30,38,48,50,14],[20201229,8,12,23,25,29,43,46,13],[20210101,18,21,28,29,31,32,49,38],[20210105,1,16,21,24,35,37,39,45],[20210108,4,21,24,25,26,27,42,8],[20210112,4,12,13,15,18,30,50,34],[20210115,5,23,31,35,36,37,43,13],[20210119,23,31,34,38,40,45,50,41],[20210122,11,21,23,25,28,41,43,10],[20210126,26,37,42,44,46,49,50,24],[20210129,9,11,20,22,33,36,46,49],[20210202,17,24,27,34,38,42,48,19],[20210205,1,2,23,32,35,36,45,28],[20210209,4,12,16,17,33,36,44,2],[20210212,2,5,10,11,14,23,33,47],[20210216,1,6,12,21,34,37,47,20],[20210219,1,5,10,18,20,40,42,47],[20210223,3,13,14,20,30,45,49,35],[20210226,11,17,19,22,27,31,40,38],[20210302,9,29,30,36,42,46,49,47],[20210305,6,9,23,25,31,36,48,30],[20210309,3,7,16,22,29,31,42,15],[20210312,5,12,15,23,28,38,39,46],[20210316,8,15,25,27,33,39,44,20],[20210319,2,7,8,26,30,43,48,25],[20210323,5,6,12,28,29,36,46,40],[20210326,2,4,16,24,25,27,49,29],[20210330,12,22,25,30,37,38,45,2],[20210402,30,32,33,34,37,45,49,25],[20210406,2,14,24,25,35,44,45,11],[20210409,1,19,28,29,31,33,43,17],[20210413,15,16,18,19,22,44,47,28],[20210416,1,13,19,27,42,49,50,32],[20210420,7,10,11,19,22,30,37,18],[20210423,1,3,4,11,19,24,42,27],[20210427,7,11,14,26,27,29,36,2],[20210430,2,14,27,30,31,35,43,38],[20210504,1,23,27,33,39,45,49,40],[20210507,1,8,17,21,35,39,46,31],[20210511,14,15,20,32,35,38,50,46],[20210514,3,18,19,24,26,27,45,20],[20210518,5,9,18,27,32,38,40,34],[20210521,5,6,25,31,32,44,48,39],[20210525,6,9,11,19,24,38,46,18],[20210528,7,18,22,40,44,46,50,5],[20210601,6,20,21,28,38,43,47,40],[20210604,2,3,16,28,31,42,47,12],[20210608,1,9,14,24,26,37,42,29],[20210611,20,21,25,33,38,44,45,22],[20210615,2,8,12,13,14,36,43,29],[20210618,11,14,15,24,34,43,47,36],[20210622,7,11,22,28,33,44,49,10],[20210625,10,13,18,33,36,45,47,22],[20210629,6,17,22,23,32,37,47,13],[20210702,6,14,35,37,40,43,46,19],[20210706,10,14,25,26,38,41,50,49],[20210709,11,21,32,33,38,40,44,19],[20210713,2,6,12,13,17,36,48,25],[20210716,13,17,24,26,33,46,48,27],[20210720,2,13,15,19,38,39,46,34],[20210723,7,8,13,21,35,38,45,15],[20210727,5,12,13,32,36,40,48,49],[20210730,4,12,18,19,22,25,44,43],[20210803,4,5,9,15,24,36,48,50],[20210806,14,15,24,43,44,48,49,47],[20210810,14,18,19,32,35,38,41,27],[20210813,1,14,17,20,28,32,38,6],[20210817,5,16,18,33,37,38,39,35],[20210820,2,6,21,31,34,39,45,33],[20210824,1,24,26,29,30,45,50,5],[20210827,9,10,13,25,41,47,49,36],[20210831,3,11,23,26,31,42,50,24],[20210903,1,2,4,10,27,33,45,31],[20210907,5,8,31,36,41,42,43,39],[20210910,11,28,38,40,43,45,48,33],[20210914,17,24,27,33,38,41,48,39],[20210917,3,6,10,26,29,35,45,30],[20210921,4,8,11,14,15,34,45,7],[20210924,5,13,28,35,41,49,50,34],[20210928,2,5,8,18,23,31,35,43],[20211001,4,8,15,39,40,42,48,5],[20211005,2,10,18,19,25,42,48,21],[20211008,5,16,19,21,23,31,36,46],[20211012,7,11,13,30,38,40,43,45],[20211015,14,17,20,24,25,38,48,11],[20211019,12,26,28,32,41,43,50,49],[20211022,2,11,19,33,44,45,47,42],[20211026,2,8,10,14,21,36,40,17],[20211029,1,5,17,18,38,41,48,13],[20211102,7,13,18,30,33,37,41,6],[20211105,2,10,11,17,19,32,42,41],[20211109,2,8,16,17,19,26,42,41],[20211112,4,6,7,10,17,27,44,40],[20211116,5,6,7,17,26,29,42,38],[20211119,1,13,14,17,25,28,41,43],[20211123,14,17,25,27,31,32,34,20],[20211126,9,26,30,35,37,42,50,47],[20211130,4,7,8,22,24,30,49,42],[20211203,7,18,22,35,37,43,45,44],[20211207,9,16,19,24,27,34,40,7],[20211210,17,21,27,32,45,46,49,19],[20211214,3,21,22,26,28,44,49,34],[20211217,9,14,16,33,39,46,49,38],[20211221,13,23,26,27,28,38,47,36],[20211224,3,11,24,25,29,32,42,16],[20211228,11,12,21,27,32,43,49,15],[20211231,7,25,30,35,38,40,49,27],[20220104,7,8,13,20,25,26,48,36],[20220107,4,5,31,39,42,45,50,11],[20220111,1,3,24,25,27,36,47,12],[20220114,2,4,7,10,14,21,34,26],[20220118,2,15,25,28,30,35,38,31],[20220121,10,14,21,26,28,36,50,41],[20220125,11,13,18,20,23,30,40,37],[20220128,3,7,8,10,34,43,47,16],[20220201,9,14,24,26,29,39,49,42],[20220204,5,15,19,22,37,46,47,1],[20220208,16,29,32,34,38,39,47,18],[20220211,1,10,12,30,33,34,36,4],[20220215,19,26,28,36,40,42,48,6],[20220218,2,3,8,11,12,37,49,36],[20220222,3,13,26,27,28,36,45,50],[20220225,2,4,17,28,35,44,46,5],[20220301,5,6,28,36,40,46,50,27],[20220304,2,4,14,18,24,46,47,23],[20220308,10,12,13,18,25,26,37,39],[20220311,5,7,12,22,28,43,47,1],[20220315,3,7,12,17,23,38,40,27],[20220318,5,7,12,18,26,29,46,25],[20220322,14,16,20,26,33,36,48,1],[20220325,3,7,16,18,27,32,37,17],[20220329,7,17,32,34,39,45,47,42],[20220401,7,10,18,29,38,43,50,41],[20220405,14,24,34,39,43,48,50,20],[20220408,1,2,14,15,21,26,29,4],[20220412,3,5,7,19,32,34,50,25],[20220415,1,6,18,21,30,32,37,35],[20220419,1,6,10,27,42,45,50,43],[20220422,13,14,23,30,34,36,42,33],[20220426,3,10,15,31,35,38,42,22],[20220429,8,9,19,32,37,46,48,45],[20220503,6,11,22,24,27,29,33,31],[20220506,3,6,11,18,19,28,41,26],[20220510,6,15,18,19,20,27,28,24],[20220513,2,22,37,38,39,42,47,30],[20220517,10,35,38,40,45,47,48,23],[20220520,5,6,20,29,42,44,47,14],[20220524,12,26,30,31,35,39,45,22],[20220527,4,9,21,22,27,31,34,5],[20220531,6,13,23,27,35,44,50,37],[20220603,2,16,17,21,38,43,45,42],[20220607,6,13,17,20,28,36,44,31],[20220610,8,14,16,17,19,22,24,23],[20220614,11,17,18,25,36,41,50,34],[20220617,1,10,12,21,30,39,40,38],[20220621,2,4,5,22,32,40,50,43],[20220624,3,9,17,19,20,44,50,28],[20220628,8,19,22,41,42,46,47,10],[20220701,1,11,13,14,25,36,47,50],[20220705,12,29,33,35,38,41,46,13],[20220708,7,12,14,18,46,47,49,19],[20220712,8,11,15,16,26,29,40,37],[20220715,4,7,12,18,29,47,49,48],[20220719,6,9,17,19,31,34,46,4],[20220722,1,9,19,34,37,39,49,6],[20220726,3,8,9,15,21,27,31,33],[20220729,7,14,17,18,19,23,41,16],[20220802,4,5,15,18,22,28,32,19],[20220805,7,16,19,33,36,48,49,5],[20220809,16,19,25,26,27,33,45,38],[20220812,4,10,28,36,40,44,47,19],[20220816,1,2,9,21,32,33,43,36],[20220819,5,20,26,33,35,46,48,17],[20220823,9,13,14,19,37,43,50,4],[20220826,3,11,22,26,29,46,48,28],[20220830,5,8,12,23,39,41,48,50],[20220902,8,17,21,31,34,37,39,7],[20220906,16,22,28,30,41,46,47,10],[20220909,1,2,15,18,29,32,36,9],[20220913,9,10,14,32,35,36,46,47],[20220916,2,13,24,34,39,40,46,23],[20220920,9,10,11,20,24,31,48,36],[20220923,15,17,21,24,28,32,43,27],[20220927,10,12,13,26,29,39,46,23],[20220930,9,14,36,37,38,40,48,26],[20221004,10,18,21,22,37,40,46,25],[20221007,7,23,28,31,32,39,40,2],[20221011,3,19,33,36,39,40,42,44],[20221014,2,24,27,31,40,43,46,13],[20221018,12,14,23,25,39,40,44,24],[20221021,1,9,25,35,41,43,50,40],[20221025,3,6,19,23,26,28,43,46],[20221028,12,17,29,30,38,40,50,16],[20221101,2,23,27,34,43,46,49,44],[20221104,4,8,25,27,32,33,34,16],[20221108,4,7,14,18,26,40,42,12],[20221111,5,23,34,35,46,47,50,10],[20221115,9,12,13,22,25,35,47,24],[20221118,3,5,11,17,26,42,49,27],[20221122,2,10,12,18,19,21,34,33],[20221125,3,6,7,10,25,30,37,9],[20221129,1,7,8,19,32,38,39,47],[20221202,4,9,14,18,24,30,45,3],[20221206,1,2,3,14,17,19,41,30],[20221209,2,18,20,22,34,43,48,7],[20221213,12,13,14,31,35,39,50,48],[20221216,6,22,25,42,43,45,48,47],[20221220,3,8,9,20,22,36,50,25],[20221223,7,17,20,22,31,36,48,34],[20221227,5,6,13,16,31,32,35,36],[20221230,6,26,32,37,38,39,46,7],[20230103,9,25,32,34,37,46,50,18],[20230106,7,14,20,24,35,40,50,15],[20230110,10,16,18,33,34,37,45,36],[20230113,3,16,17,23,35,37,47,26],[20230117,1,2,5,6,16,30,45,19],[20230120,9,16,17,19,30,38,49,45],[20230124,10,20,25,29,35,42,45,3],[20230127,4,5,9,13,29,30,35,20],[20230131,2,6,16,23,40,41,48,31],[20230203,7,10,15,17,25,39,45,43],[20230207,1,13,26,30,37,42,50,10],[20230210,6,16,22,23,28,29,34,8],[20230214,9,15,21,28,31,36,38,12],[20230217,10,12,23,26,39,41,45,42],[20230221,2,14,26,31,35,39,49,32],[20230224,1,11,15,21,35,48,49,3],[20230228,1,3,8,24,35,42,43,18],[20230303,10,14,20,37,42,44,46,50],[20230307,1,16,26,28,31,44,45,22],[20230310,18,19,31,36,38,41,43,8],[20230314,4,15,17,24,27,32,41,36],[20230317,5,15,17,22,25,37,46,13],[20230321,7,15,17,20,32,40,50,21],[20230324,5,9,14,23,32,33,46,26],[20230328,5,9,12,19,21,22,49,31],[20230331,1,3,26,28,36,47,50,48],[20230404,6,15,29,32,36,45,48,39],[20230407,15,26,34,41,44,45,46,11],[20230411,4,5,11,12,31,43,44,15],[20230414,17,25,28,30,34,46,49,42],[20230418,5,7,16,20,26,30,36,44],[20230421,7,8,18,26,33,42,46,39],[20230425,4,19,21,33,37,38,39,42],[20230428,1,2,12,15,35,39,45,44],[20230502,2,12,22,30,32,35,36,1],[20230505,8,16,22,24,25,30,32,11],[20230509,18,19,31,33,35,40,50,16],[20230512,4,5,20,26,28,29,48,44],[20230516,11,13,19,25,28,46,49,24],[20230519,12,13,35,41,42,44,47,32],[20230523,1,7,10,18,23,24,34,3],[20230526,2,7,9,12,21,30,37,23],[20230530,13,14,18,19,25,29,38,36],[20230602,1,12,16,21,29,43,49,8],[20230606,4,7,13,16,31,32,39,26],[20230609,7,10,12,31,37,42,44,34],[20230613,1,2,8,12,24,44,45,26],[20230616,11,20,30,34,41,47,49,16],[20230620,5,10,24,30,32,43,48,40],[20230623,8,19,21,29,33,40,46,25],[20230627,1,9,25,31,34,35,38,36],[20230630,1,13,19,26,35,42,49,37],[20230704,2,9,20,21,23,32,43,1],[20230707,12,13,28,32,34,35,40,27],[20230711,5,16,23,24,31,40,48,3],[20230714,3,11,23,27,39,44,48,17],[20230718,2,4,5,15,29,40,49,42],[20230721,4,8,14,25,28,40,41,6],[20230725,15,16,17,18,43,44,48,50],[20230728,4,17,26,28,29,41,48,16],[20230801,2,13,26,28,30,43,46,24],[20230804,2,11,16,21,32,44,47,13],[20230808,7,19,22,34,44,46,49,26],[20230811,7,8,23,28,29,31,37,43],[20230815,13,15,20,29,31,48,49,18],[20230818,1,7,29,36,40,42,50,35],[20230822,2,7,12,19,38,42,50,39],[20230825,7,12,17,18,37,38,45,40],[20230829,13,17,19,22,26,28,40,20],[20230901,1,7,15,30,36,37,46,14],[20230905,8,20,23,26,38,45,47,33],[20230908,15,22,25,29,30,31,34,18],[20230912,6,7,9,12,13,32,37,15],[20230915,1,2,11,27,32,35,44,18],[20230919,4,7,13,20,24,30,48,5],[20230922,12,13,19,26,33,39,43,2],[20230926,3,7,13,20,22,25,47,23],[20230929,2,12,19,26,34,44,46,41],[20231003,1,7,10,15,30,34,47,29],[20231006,4,17,20,23,25,27,41,7],[20231010,5,6,12,28,33,41,47,1],[20231013,8,17,20,23,28,31,33,45],[20231017,2,7,15,16,18,19,25,35],[20231020,3,18,19,21,25,46,50,22],[20231024,4,15,16,17,23,27,47,1],[20231027,6,17,25,28,30,34,36,15],[20231031,22,23,25,26,35,40,44,33],[20231103,5,7,9,10,19,24,40,18],[20231107,4,6,16,19,29,31,44,22],[20231110,7,12,15,16,35,45,48,10],[20231114,9,14,15,19,45,47,50,33],[20231117,2,23,28,30,31,33,37,50],[20231121,7,13,30,34,37,38,42,35],[20231124,2,24,25,28,36,37,46,26],[20231128,1,18,25,26,30,34,39,20],[20231201,4,12,15,22,36,44,46,33],[20231205,3,4,8,10,38,43,47,18],[20231208,8,9,11,23,25,32,34,20],[20231212,2,6,22,23,28,30,42,43],[20231215,1,2,13,15,20,21,45,8],[20231219,2,3,4,13,21,35,38,50],[20231222,8,16,19,25,30,33,47,10],[20231226,1,11,13,17,42,45,49,23],[20231229,3,6,9,25,30,36,42,34],[20240102,9,10,16,29,36,37,50,20],[20240105,3,6,11,24,29,45,50,16],[20240109,1,2,12,20,24,26,28,13],[20240112,5,6,7,18,22,34,36,26],[20240116,2,9,10,14,42,43,44,25],[20240119,11,20,27,28,32,36,50,2],[20240123,4,9,25,31,41,48,49,7],[20240126,7,11,21,22,24,26,35,32],[20240130,1,6,12,18,26,27,40,42],[20240202,7,9,14,18,22,32,42,2],[20240206,10,16,21,29,42,44,50,26],[20240209,5,8,16,32,36,41,42,12],[20240213,13,16,18,29,35,36,49,34],[20240216,4,19,29,34,41,44,46,31],[20240220,1,4,23,24,31,40,48,38],[20240223,8,16,24,28,40,41,47,10],[20240227,14,18,22,25,34,40,46,30],[20240301,15,17,23,32,38,46,47,44],[20240305,2,4,7,25,33,43,49,38],[20240308,1,3,6,19,21,33,47,10],[20240312,3,15,20,21,23,24,34,38],[20240315,22,24,31,33,39,45,46,2],[20240319,3,16,19,21,24,40,46,39],[20240322,2,7,19,28,36,37,44,10],[20240326,21,24,25,26,31,42,43,30],[20240329,1,14,17,19,23,42,48,39],[20240402,11,23,36,38,42,43,49,27],[20240405,4,8,18,24,26,35,46,5],[20240409,4,5,22,30,44,46,50,34],[20240412,17,25,30,35,36,44,50,10],[20240416,15,19,22,28,34,36,46,25],[20240419,6,7,14,15,28,39,42,37],[20240423,7,14,17,26,29,38,39,18],[20240426,2,3,23,36,38,40,48,42],[20240430,5,8,18,21,23,31,48,40],[20240503,3,5,16,20,31,34,38,17],[20240507,3,22,32,43,46,47,48,49],[20240510,2,4,14,28,29,30,43,34],[20240514,10,15,18,27,28,32,43,8],[20240517,5,13,27,28,32,45,50,44],[20240521,1,4,6,7,34,40,46,2],[20240524,1,6,9,11,31,39,50,35],[20240528,2,6,9,21,22,32,43,3],[20240531,1,4,18,19,23,28,29,43],[20240604,5,6,12,15,18,34,37,7],[20240607,2,3,12,15,32,33,36,9],[20240611,3,30,39,44,45,47,49,46],[20240614,5,11,29,31,38,39,49,41],[20240618,17,19,32,34,37,44,45,22],[20240621,8,12,32,33,34,46,47,13],[20240625,3,11,28,40,43,44,45,4],[20240628,1,5,11,12,13,23,33,21],[20240702,1,10,11,16,19,23,39,50],[20240705,2,6,14,19,25,27,44,32],[20240709,19,22,29,33,41,45,50,44],[20240712,6,7,8,11,35,41,44,10],[20240716,10,11,18,26,36,40,49,28],[20240719,1,3,17,18,20,23,29,35],[20240723,4,12,14,16,27,35,41,32],[20240726,3,8,15,29,34,38,39,17],[20240730,1,4,11,35,42,45,49,36],[20240802,3,18,26,27,37,39,40,16],[20240806,7,12,13,30,38,46,48,28],[20240809,11,16,22,25,31,41,44,30],[20240813,13,28,30,34,40,45,49,9],[20240816,5,7,12,18,33,40,50,15],[20240820,2,11,12,21,24,38,39,33],[20240823,4,5,9,15,33,37,42,30],[20240827,4,17,25,38,41,46,50,14],[20240830,6,7,10,14,28,29,46,44],[20240903,4,6,10,22,32,39,50,19],[20240906,5,16,18,20,23,28,39,8],[20240910,5,16,22,24,31,33,38,30],[20240913,9,12,13,15,29,30,41,47],[20240917,2,4,11,16,25,29,47,34],[20240920,4,8,26,32,35,36,37,33],[20240924,1,11,21,38,40,43,45,20],[20240927,4,6,8,16,21,36,50,9],[20241001,11,12,28,32,36,38,41,44],[20241004,2,9,20,27,40,45,49,50],[20241008,10,11,13,20,22,27,48,21],[20241011,7,20,24,33,44,48,49,43],[20241015,8,12,19,20,26,32,46,27],[20241018,6,12,13,21,24,30,47,34],[20241022,7,8,23,30,32,33,49,22],[20241025,3,15,23,24,31,33,47,22],[20241029,20,26,28,29,35,39,47,46],[20241101,7,16,22,28,30,34,41,44],[20241105,1,2,9,22,26,32,47,35],[20241108,2,16,25,38,40,41,44,26],[20241112,1,12,13,24,28,36,39,35],[20241115,2,7,10,14,27,32,35,44],[20241119,2,10,16,18,22,44,50,42],[20241122,4,6,9,21,40,42,43,24],[20241126,20,24,31,33,36,41,49,50],[20241129,6,17,26,29,30,39,49,2],[20241203,9,14,21,26,29,32,41,47],[20241206,8,21,29,31,37,38,41,12],[20241210,3,6,22,30,32,40,46,19],[20241213,2,17,20,22,32,33,47,24],[20241217,13,16,27,39,43,45,50,36],[20241220,5,6,7,24,27,29,32,47],[20241224,2,10,15,16,31,34,43,46],[20241227,2,6,13,31,35,37,39,49],[20241231,7,9,11,16,17,20,33,48],[20250103,3,10,19,27,33,37,38,7],[20250107,14,20,21,24,26,35,44,34],[20250110,1,2,11,19,27,28,36,21],[20250114,9,12,13,25,27,44,48,14],[20250117,10,17,19,25,28,34,41,33],[20250121,13,15,21,35,36,42,47,38],[20250124,22,27,29,35,39,45,46,33],[20250128,3,13,19,43,46,47,50,27],[20250131,2,8,9,16,27,37,38,30],[20250204,10,14,16,27,35,40,50,22],[20250207,10,11,20,21,27,32,49,35],[20250211,1,8,17,22,39,45,46,23],[20250214,1,7,20,27,30,35,48,44],[20250218,5,13,18,25,34,36,44,1],[20250221,3,5,8,25,29,32,43,31],[20250225,7,19,20,30,34,47,50,38],[20250228,4,6,15,16,35,43,44,29],[20250304,15,21,26,35,36,43,45,41],[20250307,4,12,28,36,38,45,50,49],[20250311,2,10,19,21,29,35,40,46],[20250314,18,19,22,27,30,38,50,24],[20250318,4,14,20,36,38,42,45,43],[20250321,20,26,30,32,36,40,48,50],[20250325,1,10,16,36,39,45,47,4],[20250328,7,13,33,40,44,49,50,32],[20250401,6,18,27,30,31,43,48,14],[20250404,6,18,22,40,41,43,46,4],[20250408,10,12,22,24,34,40,41,19],[20250411,6,23,24,43,44,49,50,34],[20250415,12,20,21,27,36,40,42,5],[20250418,1,3,5,6,14,18,34,7],[20250422,5,19,25,31,34,38,48,15],[20250425,5,6,14,17,31,40,48,2],[20250429,3,11,14,29,33,38,45,18],[20250502,4,9,19,22,23,32,41,34],[20250506,5,13,15,20,45,48,49,19],[20250509,6,10,16,17,30,38,48,25],[20250513,10,11,13,20,24,44,46,9],[20250516,20,22,25,31,34,37,46,50],[20250520,3,7,13,14,20,21,45,5],[20250523,13,19,23,26,36,39,47,7],[20250527,5,7,11,18,26,41,46,43],[20250530,7,9,18,24,25,31,48,14],[20250603,6,29,39,40,42,44,48,22],[20250606,2,5,8,9,24,28,32,22],[20250610,5,9,20,31,37,49,50,29],[20250613,2,28,34,37,40,46,47,32],[20250617,2,10,25,36,46,48,50,29],[20250620,14,17,20,24,42,47,50,25],[20250624,1,2,7,32,45,46,48,24],[20250627,8,12,15,27,31,42,47,41],[20250701,2,5,14,26,33,35,36,10],[20250704,6,14,23,31,34,35,42,1],[20250708,7,8,18,27,38,48,50,5],[20250711,4,5,10,34,36,44,50,23],[20250715,3,4,7,14,24,41,43,27],[20250718,9,14,33,40,41,43,44,4],[20250722,2,3,8,10,42,46,47,20],[20250725,9,10,22,29,35,37,46,38],[20250729,10,13,15,17,33,37,46,3],[20250801,12,21,26,35,39,44,50,18],[20250805,4,8,12,26,29,33,37,24],[20250808,7,8,18,28,31,36,41,1],[20250812,15,16,21,27,28,33,39,10],[20250815,4,9,19,21,27,41,44,11],[20250819,7,10,11,17,19,34,45,36],[20250822,5,8,9,21,22,30,45,16],[20250826,3,7,14,22,29,33,50,43],[20250829,3,5,12,18,20,31,34,16],[20250902,4,14,22,35,37,38,49,45],[20250905,4,16,20,30,34,46,50,40],[20250909,2,8,18,25,27,34,42,10],[20250912,2,3,7,9,13,23,41,42],[20250916,12,18,25,30,31,38,43,34],[20250919,3,8,16,26,37,40,44,5],[20250923,8,9,23,30,38,40,43,41],[20250926,10,11,21,23,32,36,45,13],[20250930,14,22,27,31,33,39,50,7],[20251003,10,17,22,30,36,42,45,33],[20251007,5,6,16,26,29,37,44,46],[20251010,4,9,10,16,33,45,50,36],[20251014,3,9,12,15,28,30,37,1],[20251017,4,19,20,23,24,43,45,5],[20251021,1,7,17,18,25,28,45,12],[20251024,9,16,22,31,36,44,47,40],[20251028,6,14,17,19,26,43,45,27],[20251031,12,14,22,29,30,46,48,31],[20251104,3,4,24,26,28,32,33,45],[20251107,5,28,31,33,39,40,49,45],[20251111,1,4,8,18,27,42,50,19],[20251114,1,7,17,23,27,35,43,4],[20251118,10,18,21,28,32,38,41,47],[20251121,7,8,20,30,39,40,47,34],[20251125,12,15,16,19,21,40,48,4],[20251128,1,7,12,16,28,47,50,45],[20251202,7,8,16,21,33,34,37,20],[20251205,4,15,32,34,40,45,48,7],[20251209,3,19,20,29,30,34,49,22],[20251212,4,16,25,28,36,38,41,9],[20251216,1,6,31,35,37,45,49,11],[20251219,3,5,20,29,35,38,46,24],[20251223,3,28,37,38,39,41,43,45],[20251226,2,6,14,20,43,46,47,19],[20251230,5,21,32,38,43,44,45,49],[20260102,5,9,11,22,30,41,43,49],[20260106,12,21,26,31,37,39,50,3],[20260109,9,21,26,31,34,36,43,46],[20260113,14,18,21,22,32,42,46,33],[20260116,6,9,13,41,43,45,48,34],[20260120,3,9,15,17,22,31,33,50],[20260123,3,9,13,16,18,27,29,2],[20260127,5,9,24,30,36,39,43,21],[20260130,30,34,38,43,44,46,49,47],[20260203,4,19,20,31,34,45,48,40],[20260206,6,23,25,29,40,45,48,33],[20260210,4,7,17,26,28,30,35,10],[20260213,3,13,26,36,41,42,43,37],[20260217,10,11,18,22,28,34,36,45],[20260220,15,16,29,31,32,45,49,25],[20260224,6,8,10,25,27,30,31,44],[20260227,7,9,22,24,34,36,37,19],[20260303,1,3,4,18,20,23,31,2],[20260306,3,6,12,21,28,35,41,47],[20260310,14,16,22,28,33,37,48,47],[20260313,6,7,23,25,29,30,38,31],[20260317,7,10,24,25,34,45,49,44],[20260320,2,14,25,31,36,41,47,13],[20260324,6,11,32,33,34,39,49,45],[20260327,5,34,37,38,48,49,50,9],[20260331,6,11,31,38,40,46,50,37],[20260403,2,4,6,25,38,44,47,34],[20260407,3,8,15,19,23,29,37,4],[20260410,1,11,16,20,28,32,45,50],[20260414,4,13,20,31,37,43,51,9],[20260417,7,12,29,38,39,44,52,35],[20260421,2,12,16,19,24,29,48,10],[20260424,11,14,26,31,36,39,43,6],[20260428,9,11,14,17,18,33,41,12],[20260501,9,13,15,25,27,35,52,39],[20260505,3,4,9,15,21,26,48,16],[20260508,2,6,8,33,35,43,44,21],[20260512,6,12,18,24,32,34,45,51],[20260515,7,10,18,32,42,43,50,45],[20260519,5,15,22,24,34,37,49,2],[20260522,11,22,31,36,42,47,48,44],[20260526,3,4,5,12,22,32,34,45],[20260529,3,14,15,40,45,48,49,43],[20260602,6,7,23,28,34,40,43,52],[20260605,11,16,27,34,40,47,49,26],[20260609,6,7,11,12,36,46,50,24],[20260612,1,12,28,35,41,42,52,20],[20260616,1,22,25,31,36,37,44,13],[20260619,5,13,21,33,41,42,51,10],[20260623,4,17,22,35,47,49,51,2],[20260626,5,6,16,30,33,43,51,35],[20260630,6,10,18,23,25,33,42,16],[20260703,9,18,32,39,41,44,50,15],[20260707,14,23,25,30,36,38,47,39],[20260710,15,17,18,21,28,32,46,38],[20260714,3,17,24,35,37,40,41,31],[20260717,8,12,13,32,40,41,52,38],[20260721,1,7,18,19,38,48,52,29],[20260724,5,7,8,22,30,36,37,2],[20260728,3,5,15,21,27,38,49,18],[20260731,3,28,32,37,40,44,47,23],[20260804,1,13,24,34,46,50,51,36],[20260807,6,11,23,31,35,43,48,9],[20260811,9,26,35,39,43,44,47,11],[20260814,13,29,36,39,46,49,50,1],[20260818,4,13,21,26,39,43,48,5],[20260821,1,4,15,18,24,25,51,13],[20260825,10,15,23,25,28,31,52,43],[20260828,1,7,8,10,41,42,48,29],[20260901,5,12,25,30,39,50,52,19],[20260904,11,12,17,34,45,48,52,31],[20260908,12,18,19,35,43,49,52,26],[20260911,1,38,41,44,45,49,51,47],[20260915,2,23,30,38,40,44,49,18],[20260918,6,8,11,14,30,39,41,47],[20260922,1,10,12,17,30,37,42,8],[20260925,8,24,38,41,43,50,52,7],[20260929,6,10,13,22,23,43,49,17],[20261002,2,4,20,23,25,41,47,26],[20261006,11,12,22,31,32,46,50,7],[20261009,6,10,19,25,29,39,50,36],[20261013,7,11,19,28,32,35,50,36],[20261016,1,11,13,36,41,43,51,52],[20261020,8,15,19,23,26,28,34,38],[20261023,8,21,23,28,30,39,47,17],[20261027,1,20,24,26,33,36,50,11],[20261030,6,19,23,24,30,35,51,2],[20261103,5,7,16,23,28,30,47,31],[20261106,10,23,32,43,46,48,51,30],[20261110,3,11,31,37,44,47,50,17],[20261113,4,9,15,25,27,44,47,29]];
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const ERAS=[[20260414,52],[20190514,50],[20090925,49]];
+const poolOf=k=>{for(const[e,p]of ERAS)if(k>=e)return p;return 49};
+const iso=k=>{const s=String(k);return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6)};
+function mk(k,n,b){const d=iso(k);return{k,d,n,b,pool:poolOf(k),dow:new Date(d+'T00:00:00Z').getUTCDay(),sum:n.reduce((a,x)=>a+x,0),odd:n.filter(x=>x&1).length}}
+let DRAWS=RAW.map(a=>mk(a[0],a.slice(1,8),a[8])),PAST=new Set();
+const LOC={en:'en-CA',fr:'fr-CA','zh-Hant':'zh-Hant','zh-Hans':'zh-Hans',pa:'pa-IN',hi:'hi-IN'};
+const S={lang:'en',h:{year:'',dow:'',from:'',to:'',nums:[],limit:10},a:{scope:'cur',view:'freq',bonus:false},
+  g:{lines:4,exlast:0,excombo:true,sum:false,oe:false,run:false,bday:false,inc:new Set(),exc:new Set()},out:[],busy:false};
+const last=()=>DRAWS[DRAWS.length-1],POOL=()=>last().pool;
+function t(k,v){let s=(I18N[S.lang]&&I18N[S.lang][k])||I18N.en[k]||k;if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s}
+function fmtDate(d,o){try{return new Intl.DateTimeFormat(LOC[S.lang],Object.assign({weekday:'short',year:'numeric',month:'short',day:'numeric',timeZone:'UTC'},o)).format(new Date(d+'T00:00:00Z'))}catch(e){return d}}
+const nf=n=>{try{return n.toLocaleString(LOC[S.lang])}catch(e){return String(n)}};
+const pc=(x,d=1)=>(x*100).toFixed(d);
+const comb=(n,k)=>{if(k<0||k>n)return 0;let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r)};
+const ball=(v,c='')=>`<span class="ball ${c}">${v}</span>`;
+const ballsHtml=(d,c='')=>d.n.map(v=>ball(v,c)).join('')+`<span class="plus">+</span><span class="ball bonus" title="${t('bonus')}">${d.b}</span>`;
+
+/* ---------- maths ---------- */
+function lgam(x){const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,1.208650973866179e-3,-5.395239384953e-6];let y=x,tmp=x+5.5;tmp-=(x+.5)*Math.log(tmp);let s=1.000000000190015;for(const cj of c)s+=cj/++y;return-tmp+Math.log(2.5066282746310005*s/x)}
+function gammq(a,x){if(x<=0)return 1;const pre=Math.exp(-x+a*Math.log(x)-lgam(a));
+  if(x<a+1){let ap=a,sum=1/a,del=sum;for(let i=0;i<1000;i++){ap++;del*=x/ap;sum+=del;if(Math.abs(del)<Math.abs(sum)*1e-13)break}return 1-sum*pre}
+  let b=x+1-a,c=1e300,d=1/b,h=d;for(let i=1;i<1000;i++){const an=-i*(i-a);b+=2;d=an*d+b;if(Math.abs(d)<1e-300)d=1e-300;c=b+an/c;if(Math.abs(c)<1e-300)c=1e-300;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<1e-13)break}return pre*h}
+function chiP(ds,N){const m=ds.length;if(m<20)return null;const c=new Array(N+1).fill(0);ds.forEach(d=>d.n.forEach(v=>c[v]++));const E=m*7/N;let x=0;for(let v=1;v<=N;v++)x+=(c[v]-E)**2/E;x*=(N-1)/(N-7);return gammq((N-1)/2,x/2)}
+const pOdd=(N,k)=>{const O=Math.ceil(N/2);return comb(O,k)*comb(N-O,7-k)/comb(N,7)};
+const pRep=(N,j)=>comb(7,j)*comb(N-7,7-j)/comb(N,7);
+const pCons=N=>1-comb(N-6,7)/comb(N,7);
+const avgPool=(ds,f)=>ds.reduce((a,d)=>a+f(d.pool),0)/ds.length;
+const hasCons=n=>n.some((v,i)=>i&&v-n[i-1]===1);
+function pctl(ds,q){const s=ds.map(d=>d.sum).sort((a,b)=>a-b);return s[Math.min(s.length-1,Math.floor(s.length*q))]}
+const modern=()=>DRAWS.filter(d=>d.pool>=50);
+const sumRange=()=>{const m=modern();return[pctl(m,.1),pctl(m,.9)]};
+
+/* ---------- hero ---------- */
+function todayET(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}catch(e){return new Date().toISOString().slice(0,10)}}
+const addDay=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
+const isDrawDay=d=>{const w=new Date(d+'T00:00:00Z').getUTCDay();return w===2||w===5};
+function schedule(){const L=last().d,T=todayET();let missing=0;for(let d=addDay(L,1);d<T;d=addDay(d,1))if(isDrawDay(d))missing++;
+  let nx=T>L?T:addDay(L,1);while(!isDrawDay(nx))nx=addDay(nx,1);return{missing,next:nx,tonight:nx===T}}
+function renderHero(){const L=last(),sc=schedule();
+  $('#latestDate').textContent=fmtDate(L.d,{weekday:'long',month:'long'});
+  $('#latestBalls').innerHTML=ballsHtml(L,'gold');
+  $('#nextDraw').textContent=sc.tonight?t('tonight'):fmtDate(sc.next,{year:undefined});
+  $('#nDraws').textContent=nf(DRAWS.length);$('#poolNow').textContent='1–'+L.pool;$('#odds').textContent='1 / '+nf(comb(L.pool,7));
+  const f=$('#fresh');f.className='note'+(sc.missing?' warn':'');f.textContent=sc.missing?t('stale',{n:sc.missing}):t('data_through',{date:fmtDate(L.d)});
+  $('#footData').textContent=t('data_through',{date:fmtDate(L.d)})+' · '+nf(DRAWS.length)}
+
+/* ---------- history ---------- */
+function histList(){const h=S.h;return DRAWS.filter(d=>(!h.year||d.d.slice(0,4)===h.year)&&(!h.dow||d.dow===+h.dow)&&(!h.from||d.d>=h.from)&&(!h.to||d.d<=h.to)&&h.nums.every(v=>d.n.includes(v)||d.b===v)).reverse()}
+function renderHist(){const all=histList(),rows=all.slice(0,S.h.limit);
+  $('#hBody').innerHTML=rows.length?rows.map(d=>`<tr><td>${fmtDate(d.d)}</td><td><div class="balls">${ballsHtml(d)}</div></td><td class="num">${d.sum}</td><td class="num">${d.odd} : ${7-d.odd}</td></tr>`).join(''):`<tr><td colspan="4">${t('none')}</td></tr>`;
+  $('#hCount').textContent=t('h_count',{a:nf(rows.length),b:nf(all.length)});
+  const more=all.length>rows.length;$('#hMore').hidden=!more;$('#hAll').hidden=!more;$('#hAll').textContent=t('show_all',{b:nf(all.length)})}
+function histOptions(){const ys=[...new Set(DRAWS.map(d=>d.d.slice(0,4)))].reverse();
+  $('#fYear').innerHTML=`<option value="">${t('all')}</option>`+ys.map(y=>`<option>${y}</option>`).join('');$('#fYear').value=S.h.year;
+  $('#fDow').innerHTML=`<option value="">${t('all')}</option><option value="2">${t('tue')}</option><option value="5">${t('fri')}</option>`;$('#fDow').value=S.h.dow;
+  $('#fNums').placeholder=t('f_nums_ph');$('#fFrom').min=$('#fTo').min=DRAWS[0].d;$('#fFrom').max=$('#fTo').max=last().d}
+
+/* ---------- charts ---------- */
+function barChart(items,o={}){let mx=0;items.forEach(i=>{mx=Math.max(mx,i.v,i.e||0)});const step=mx>40?20:mx>16?10:mx>8?4:2;mx=Math.max(step,Math.ceil(mx/step)*step);
+  const cols=items.map(i=>`<div class="col" data-tip="${i.tip}"><div class="bar" style="height:${i.v/mx*100}%"></div>${i.e!=null?`<i class="tick" style="bottom:${i.e/mx*100}%"></i>`:''}</div>`).join('');
+  const xs=items.map(i=>`<span>${i.show===false?'':i.l}</span>`).join('');
+  return`<div class="chartwrap"><div class="chart" style="--minw:${o.minw||0}px"><div class="yax"><span>${mx}%</span><span>${mx/2}%</span><span>0</span></div><div class="plot">${cols}</div><div class="xax">${xs}</div></div></div>`+
+    (o.legend?`<div class="legend"><span><i class="lb"></i>${t('observed')}</span><span><i class="lt"></i>${t('expected')}</span></div>`:'')}
+function rankList(rows,mx){return`<div class="rank">${rows.map(r=>`<div>${r.h}<span class="meter"><i style="width:${Math.max(2,r.v/mx*100)}%"></i></span><span class="v">${r.t}</span></div>`).join('')}</div>`}
+
+/* ---------- analysis ---------- */
+const SCOPES=['cur','e50','e49','all','l50','l100'],VIEWS=['freq','gap','pairs','oe','sum','rep'];
+function scopeDraws(){const s=S.a.scope;if(s==='cur')return DRAWS.filter(d=>d.k>=ERAS[0][0]);if(s==='e50')return DRAWS.filter(d=>d.pool===50);if(s==='e49')return DRAWS.filter(d=>d.pool===49);if(s==='l50')return DRAWS.slice(-50);if(s==='l100')return DRAWS.slice(-100);return DRAWS}
+const picks=d=>S.a.bonus?d.n.concat(d.b):d.n;
+function freqData(ds){const N=Math.max(...ds.map(d=>d.pool)),k=S.a.bonus?8:7,out=[];
+  for(let v=1;v<=N;v++){let c=0,el=0,ex=0;for(const d of ds){if(d.pool<v)continue;el++;ex+=k/d.pool;if(picks(d).includes(v))c++}out.push({v,c,el,p:el?c/el:0,e:el?ex/el:0})}return out}
+function renderAnalysis(){const ds=scopeDraws(),m=ds.length,v=S.a.view,N=Math.max(...ds.map(d=>d.pool));let h=`<p class="cap"><b style="color:var(--ink)">${t('n_draws',{n:nf(m)})}</b> · `;
+  if(v==='freq'){const f=freqData(ds),by=f.slice().sort((a,b)=>b.p-a.p||a.v-b.v),mx=by[0].p;
+    const row=x=>({h:ball(x.v),v:x.p,t:`${x.c}× · ${pc(x.p)}%`});
+    h+=t('freq_cap')+'</p>'+barChart(f.map(x=>({l:x.v,v:x.p*100,e:x.e*100,show:x.v===1||x.v%5===0,tip:t('tip_freq',{n:x.v,c:x.c,m:x.el,p:pc(x.p),e:pc(x.e)})})),{minw:620,legend:1})+
+      `<div class="two"><div><h3>${t('hot')}</h3>${rankList(by.slice(0,7).map(row),mx)}</div><div><h3>${t('cold')}</h3>${rankList(by.slice(-7).reverse().map(row),mx)}</div></div>`}
+  else if(v==='gap'){const g=[];const never=[];for(let x=1;x<=N;x++){let idx=-1;for(let i=m-1;i>=0;i--)if(picks(ds[i]).includes(x)){idx=i;break}idx<0?never.push(x):g.push({v:x,g:m-1-idx})}
+    g.sort((a,b)=>b.g-a.g);const top=g.slice(0,12),mx=top[0]?Math.max(1,top[0].g):1;
+    h+=t('gap_cap')+'</p>'+rankList(top.map(x=>({h:ball(x.v),v:x.g,t:t('gap_unit',{g:x.g})})),mx)+
+      `<div style="margin-top:22px"><h3>${t('gap_never')}</h3><div class="balls" style="margin-top:10px">${never.length?never.map(x=>ball(x)).join(''):`<span class="cap" style="margin:0">${t('gap_none')}</span>`}</div>`+
+      (S.a.scope==='all'||S.a.scope==='e50'||S.a.scope==='e49'?`<p class="cap" style="margin-top:12px">${t('gap_note51')}</p>`:'')+'</div>'}
+  else if(v==='pairs'){const P=new Map(),T=new Map();for(const d of ds){const n=d.n;for(let i=0;i<7;i++)for(let j=i+1;j<7;j++){const a=n[i]*100+n[j];P.set(a,(P.get(a)||0)+1);for(let k=j+1;k<7;k++){const b=a*100+n[k];T.set(b,(T.get(b)||0)+1)}}}
+    const top=(M,n)=>[...M].sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,n);const tp=top(P,12),tt=top(T,8);
+    const ex=ds.reduce((a,d)=>a+42/(d.pool*(d.pool-1)),0);
+    const dec=(k,n)=>{const o=[];for(let i=0;i<n;i++){o.unshift(k%100);k=Math.floor(k/100)}return`<span class="balls">${o.map(x=>ball(x)).join('')}</span>`};
+    h+=t('pairs_cap',{m:nf(m),e:ex.toFixed(1)})+`</p><div class="two" style="margin-top:0"><div><h3>${t('pairs_t')}</h3>${rankList(tp.map(x=>({h:dec(x[0],2),v:x[1],t:x[1]+'×'})),tp[0][1])}</div><div><h3>${t('trip_t')}</h3>${rankList(tt.map(x=>({h:dec(x[0],3),v:x[1],t:x[1]+'×'})),tt[0][1])}</div></div>`}
+  else if(v==='oe'){const c=new Array(8).fill(0);ds.forEach(d=>c[d.odd]++);
+    h+=t('oe_cap')+'</p>'+barChart(c.map((x,k)=>{const e=avgPool(ds,p=>pOdd(p,k)),l=t('odd_n',{k});return{l,v:x/m*100,e:e*100,tip:t('tip_dist',{l,p:pc(x/m),e:pc(e)})}}),{legend:1})}
+  else if(v==='sum'){const lo=Math.floor(Math.min(...ds.map(d=>d.sum))/20)*20,hi=Math.max(...ds.map(d=>d.sum)),bins=[];for(let b=lo;b<=hi;b+=20)bins.push({b,c:0});ds.forEach(d=>bins[Math.floor((d.sum-lo)/20)].c++);
+    h+=t('sum_cap',{a:pctl(ds,.1),b:pctl(ds,.9)})+'</p>'+barChart(bins.map(x=>{const l=x.b+'–'+(x.b+19);return{l,v:x.c/m*100,tip:t('tip_sum',{l,c:x.c,p:pc(x.c/m)})}}),{minw:560})}
+  else{const c=[0,0,0,0];let cons=0;ds.forEach((d,i)=>{if(hasCons(d.n))cons++;if(i){const j=d.n.filter(x=>ds[i-1].n.includes(x)).length;c[Math.min(3,j)]++}});const mm=Math.max(1,m-1);
+    h+=t('rep_cap')+'</p>'+barChart(c.map((x,j)=>{const e=avgPool(ds,p=>j<3?pRep(p,j):1-pRep(p,0)-pRep(p,1)-pRep(p,2)),l=t('rep_n',{k:j<3?j:'3+'});return{l,v:x/mm*100,e:e*100,tip:t('tip_dist',{l,p:pc(x/mm),e:pc(e)})}}),{legend:1})+
+      `<p class="cap" style="margin:18px 0 0">${t('rep_cons',{p:pc(cons/m),e:pc(avgPool(ds,pCons))})}</p>`}
+  $('#aPanel').innerHTML=h}
+function analysisOptions(){$('#aScope').innerHTML=SCOPES.map(s=>`<option value="${s}">${t('sc_'+s)}</option>`).join('');$('#aScope').value=S.a.scope;
+  $('#aTabs').innerHTML=VIEWS.map(v=>`<button data-v="${v}" aria-pressed="${v===S.a.view}">${t('v_'+v)}</button>`).join('')}
+
+/* ---------- patterns ---------- */
+let CLOSE=null;
+function closest(){if(CLOSE&&CLOSE.n===DRAWS.length)return CLOSE;const lo=[],hi=[];DRAWS.forEach(d=>{let a=0,b=0;d.n.forEach(v=>v<=26?a|=1<<v:b|=1<<(v-26));lo.push(a);hi.push(b)});
+  const pop=x=>{x-=x>>>1&0x55555555;x=(x&0x33333333)+(x>>>2&0x33333333);return(x+(x>>>4)&0xf0f0f0f)*0x1010101>>>24};let best=[0,0,0];
+  for(let i=0;i<lo.length;i++)for(let j=i+1;j<lo.length;j++){const k=pop(lo[i]&lo[j])+pop(hi[i]&hi[j]);if(k>best[0])best=[k,i,j]}return CLOSE={n:DRAWS.length,k:best[0],a:DRAWS[best[1]],b:DRAWS[best[2]]}}
+function renderPatterns(){const ds=DRAWS,m=ds.length,md=modern(),r=sumRange(),cl=closest(),cur=ds.filter(d=>d.k>=ERAS[0][0]);
+  const pv=N=>{const p=chiP(ds.filter(d=>d.pool===N),N);return p==null?'–':p.toFixed(2)};
+  const ps=[49,50,52].map(N=>chiP(ds.filter(d=>d.pool===N),N)).filter(p=>p!=null);
+  const o34=ds.filter(d=>d.odd===3||d.odd===4).length/m,e34=avgPool(ds,p=>pOdd(p,3)+pOdd(p,4));
+  const oc=ds.filter(d=>hasCons(d.n)).length/m,ec=avgPool(ds,pCons);
+  let rp=0;for(let i=1;i<m;i++)if(ds[i].n.some(x=>ds[i-1].n.includes(x)))rp++;const or_=rp/(m-1),er=avgPool(ds,p=>1-pRep(p,0));
+  const bd=ds.filter(d=>d.n[6]<=31).length;
+  const cards=[['p1',{a:pv(49),b:pv(50),c:pv(52)},ps.every(p=>p>.01)],['p2',{a:r[0],b:r[1],n:nf(md.length)},1],['p3',{o:pc(o34),e:pc(e34)},1],['p4',{o:pc(oc),e:pc(ec)},1],['p5',{o:pc(or_),e:pc(er)},1],
+    ['p6',{n:nf(m),k:cl.k,d1:fmtDate(cl.a.d),d2:fmtDate(cl.b.d)},1],['p7',{c:bd,o:pc(bd/m)},1],['p8',{n:cur.length},0]];
+  $('#pSub').textContent=t('p_sub',{n:nf(m)});
+  $('#pCards').innerHTML=cards.map(([k,v,ok])=>`<div class="card"><h3>${t(k+'_t')}</h3><p>${t(k+'_b',v)}</p><span class="chip${ok?'':' watch'}">${t(ok?'verdict_ok':'verdict_watch')}</span></div>`).join('')}
+
+/* ---------- generator ---------- */
+function rint(n){const lim=Math.floor(4294967296/n)*n,a=new Uint32Array(1);do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%n}
+function genCtx(){const N=POOL(),g=S.g,lastN=new Set();if(g.exlast)DRAWS.slice(-g.exlast).forEach(d=>d.n.forEach(x=>lastN.add(x)));
+  const inc=[...g.inc].filter(x=>x<=N).sort((a,b)=>a-b),avail=[];for(let v=1;v<=N;v++)if(!g.inc.has(v)&&!g.exc.has(v)&&!lastN.has(v))avail.push(v);
+  return{N,inc,avail,lastN,need:7-inc.length,range:sumRange()}}
+function sample(c,r){const a=c.avail.slice(),out=c.inc.slice();for(let i=0;i<c.need;i++){const j=i+r(a.length-i),x=a[i];a[i]=a[j];a[j]=x;out.push(a[i])}return out.sort((x,y)=>x-y)}
+function passes(l,c){const g=S.g;if(g.sum){const s=l.reduce((a,x)=>a+x,0);if(s<c.range[0]||s>c.range[1])return false}
+  if(g.oe){const o=l.filter(x=>x&1).length;if(o<2||o>5)return false}
+  if(g.run)for(let i=0;i<5;i++)if(l[i+1]-l[i]===1&&l[i+2]-l[i+1]===1)return false;
+  if(g.bday&&l[6]<=31)return false;if(g.excombo&&PAST.has(l.join('-')))return false;return true}
+function passRate(){const c=genCtx();if(c.avail.length<c.need)return 0;let ok=0;const M=3000,r=n=>Math.floor(Math.random()*n);for(let i=0;i<M;i++)if(passes(sample(c,r),c))ok++;
+  return comb(c.avail.length,c.need)/comb(c.N,7)*ok/M}
+function drawLines(){const c=genCtx(),out=[],seen=new Set();if(c.avail.length<c.need)return null;
+  for(let n=0;n<S.g.lines;n++){let l=null;for(let i=0;i<60000;i++){const x=sample(c,rint),key=x.join('-');if(!seen.has(key)&&passes(x,c)){l=x;seen.add(key);break}}if(!l)return out.length?out:null;out.push(l)}return out}
+function renderGenStatic(){const g=S.g,c=genCtx(),N=c.N;
+  $('#gLines').value=g.lines;$('#gLinesOut').textContent=g.lines;
+  $('#gExlast').innerHTML=[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?t('g_exlast_n',{n}):t('g_exlast_0')}</option>`).join('');$('#gExlast').value=g.exlast;
+  $('#gExlastList').textContent=g.exlast?t('g_exlast_list',{list:[...c.lastN].sort((a,b)=>a-b).join(', ')}):'';
+  $('#gSumLbl').textContent=t('g_sum',{a:c.range[0],b:c.range[1]});
+  let h='';for(let v=1;v<=N;v++){const cl=g.inc.has(v)?'inc':g.exc.has(v)?'exc':c.lastN.has(v)?'auto':'';h+=`<button type="button" data-n="${v}" class="${cl}" aria-label="${v}${cl==='inc'?' – '+t('lg_inc'):cl==='exc'?' – '+t('lg_exc'):''}">${v}</button>`}
+  $('#gGrid').innerHTML=h;const p=passRate();
+  $('#gPass').textContent=p>0?t('g_pass',{p:p*100<.01?'<0.01':(p*100).toFixed(p<.01?2:1),t:nf(comb(N,7))}):t('g_pass0');
+  $('#gGo').textContent=t(S.out.length?'g_again':'g_draw')}
+function renderOut(anim){const o=$('#gOut');$('#gCopy').hidden=!S.out.length;
+  if(!S.out.length){o.innerHTML=`<p class="cap" style="margin:0">${t('g_empty')}</p>`;return}
+  o.innerHTML=S.out.map((l,i)=>{const s=l.reduce((a,x)=>a+x,0),od=l.filter(x=>x&1).length;
+    return`<div class="lrow"><span class="lab">${t('line',{n:i+1})}</span><span class="balls">${l.map(v=>ball(v,'gold'+(anim?' wait':''))).join('')}</span><span class="meta">${t('sum_lbl',{s})} · ${t('oe_lbl',{o:od,e:7-od})}</span></div>`}).join('')}
+function go(){if(S.busy)return;$('#gMsg').textContent='';const lines=drawLines();if(!lines){$('#gMsg').textContent=t('g_err');return}
+  if(lines.length<S.g.lines)$('#gMsg').textContent=t('g_err');S.out=lines;
+  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;renderOut(!still);$('#gGo').textContent=t('g_again');if(still)return;
+  S.busy=true;$('#gGo').disabled=true;$('#gGo').textContent=t('g_drawing');$('#drum').classList.add('spin');
+  const bs=$$('#gOut .ball');bs.forEach((b,i)=>setTimeout(()=>b.classList.remove('wait'),500+i*(bs.length>35?55:90)));
+  setTimeout(()=>{S.busy=false;$('#gGo').disabled=false;$('#gGo').textContent=t('g_again');$('#drum').classList.remove('spin')},650+bs.length*(bs.length>35?55:90))}
+
+/* ---------- wiring ---------- */
+function applyStatic(){document.documentElement.lang=S.lang;$$('[data-i18n]').forEach(e=>{e.textContent=t(e.dataset.i18n)});$('#lang').value=S.lang}
+function renderAll(){PAST=new Set(DRAWS.map(d=>d.n.join('-')));applyStatic();renderHero();histOptions();renderHist();analysisOptions();renderAnalysis();renderPatterns();renderGenStatic();renderOut(false)}
+function pickLang(){try{const s=localStorage.getItem('dn_lang');if(s&&I18N[s])return s}catch(e){}
+  for(const l of navigator.languages||[navigator.language||'en']){const x=l.toLowerCase();if(/^zh-(tw|hk|mo|hant)/.test(x))return'zh-Hant';if(x.startsWith('zh'))return'zh-Hans';const b=x.split('-')[0];if(I18N[b])return b}return'en'}
+function drum(){$$('#drum b').forEach((b,k)=>{let h='';const n=k?5:7,r=k?18:40;for(let i=0;i<n;i++){const a=i/n*6.283;h+=`<i style="left:${50+Math.cos(a)*r-8.3}%;top:${50+Math.sin(a)*r-8.3}%"></i>`}b.innerHTML=h})}
+function bind(){
+  $('#lang').onchange=e=>{S.lang=e.target.value;try{localStorage.setItem('dn_lang',S.lang)}catch(_){}renderAll()};
+  const hf=()=>{S.h.year=$('#fYear').value;S.h.dow=$('#fDow').value;S.h.from=$('#fFrom').value;S.h.to=$('#fTo').value;
+    S.h.nums=[...new Set(($('#fNums').value.match(/\d+/g)||[]).map(Number).filter(v=>v>=1&&v<=52))].slice(0,8);S.h.limit=10;renderHist()};
+  ['fYear','fDow','fFrom','fTo'].forEach(i=>$('#'+i).onchange=hf);$('#fNums').oninput=hf;
+  $('#fReset').onclick=()=>{S.h={year:'',dow:'',from:'',to:'',nums:[],limit:10};['fYear','fDow','fFrom','fTo','fNums'].forEach(i=>$('#'+i).value='');renderHist()};
+  $('#hMore').onclick=()=>{S.h.limit+=10;renderHist()};$('#hAll').onclick=()=>{S.h.limit=1e9;renderHist()};
+  $('#aScope').onchange=e=>{S.a.scope=e.target.value;renderAnalysis()};$('#aBonus').onchange=e=>{S.a.bonus=e.target.checked;renderAnalysis()};
+  $('#aTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.a.view=b.dataset.v;analysisOptions();renderAnalysis()};
+  $('#gLines').oninput=e=>{S.g.lines=+e.target.value;$('#gLinesOut').textContent=S.g.lines};
+  $('#gExlast').onchange=e=>{S.g.exlast=+e.target.value;renderGenStatic()};
+  [['gExcombo','excombo'],['gSum','sum'],['gOe','oe'],['gRun','run'],['gBday','bday']].forEach(([i,k])=>$('#'+i).onchange=e=>{S.g[k]=e.target.checked;renderGenStatic()});
+  $('#gGrid').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=+b.dataset.n,g=S.g;$('#gMsg').textContent='';
+    if(g.inc.has(v)){g.inc.delete(v);g.exc.add(v)}else if(g.exc.has(v))g.exc.delete(v);else if(g.inc.size>=6){$('#gMsg').textContent=t('g_max');g.exc.add(v)}else g.inc.add(v);renderGenStatic()};
+  $('#gGo').onclick=go;
+  $('#gCopy').onclick=()=>{const txt=S.out.map(l=>l.map(v=>String(v).padStart(2,'0')).join(' ')).join('\n'),b=$('#gCopy');
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{b.textContent=t('copied');setTimeout(()=>b.textContent=t('copy'),1500)}).catch(()=>{$('#gMsg').textContent=txt.replace(/\n/g,' | ')})};
+  const tip=$('#tip'),show=e=>{const el=e.target.closest&&e.target.closest('[data-tip]');if(!el){tip.style.display='none';return}tip.textContent=el.dataset.tip;tip.style.display='block';
+    const r=el.getBoundingClientRect(),w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';tip.style.top=Math.max(8,r.top-tip.offsetHeight-8)+'px'};
+  document.addEventListener('mouseover',show);document.addEventListener('click',show);addEventListener('scroll',()=>tip.style.display='none',{passive:true})}
+function loadLive(){fetch('data/draws.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(!Array.isArray(j))return;const by=new Map(DRAWS.map(d=>[d.k,d]));let add=0;
+  for(const x of j){if(!x||!/^\d{4}-\d\d-\d\d$/.test(x.date)||!Array.isArray(x.numbers)||x.numbers.length!==7)continue;const k=+x.date.replace(/-/g,''),n=x.numbers.map(Number).sort((a,b)=>a-b),b=+x.bonus,P=poolOf(k);
+    if(new Set(n.concat(b)).size!==8||n.concat(b).some(v=>!(v>=1&&v<=P)))continue;if(!by.has(k))add++;by.set(k,mk(k,n,b))}
+  if(add){DRAWS=[...by.values()].sort((a,b)=>a.k-b.k);renderAll()}}).catch(()=>{})}
+S.lang=pickLang();drum();bind();renderAll();loadLive();
+
+</script>
+</body>
+</html>
