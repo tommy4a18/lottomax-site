@@ -1,0 +1,47 @@
+name: Update Lotto Max draws
+
+on:
+  schedule:
+    # 攪珠在星期二、五晚上 (東岸時間 10:30pm)。以下為 UTC 時間的星期三、六，
+    # 即攪珠後約 1、2、4、10 小時各試一次，已有數據時不會重複寫入。
+    - cron: "17 4,5,7,13 * * 3,6"
+  workflow_dispatch:
+    inputs:
+      verify_all:
+        description: "逐年覆核全部歷史數據（只報告，不修改）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4
+      - name: Verify full history
+        if: ${{ inputs.verify_all }}
+        run: python scripts/update_draws.py --verify-all
+      - name: Fetch new draws
+        if: ${{ !inputs.verify_all }}
+        id: fetch
+        continue-on-error: true
+        run: python scripts/update_draws.py
+      - name: Commit new data
+        if: ${{ !inputs.verify_all }}
+        run: |
+          if ! git diff --quiet data/draws.json; then
+            git config user.name "drawnight-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add data/draws.json
+            git commit -m "Add latest Lotto Max draw"
+            git push
+          fi
+      - name: Report problems
+        if: ${{ !inputs.verify_all && steps.fetch.outcome == 'failure' }}
+        run: exit 1
