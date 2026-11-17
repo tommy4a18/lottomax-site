@@ -2,10 +2,10 @@ name: Update Lotto Max draws
 
 on:
   schedule:
-    # 攪珠在星期二、五晚上 (東岸時間 10:30pm)。以下為 UTC 時間的星期三、六。
-    # 攪珠前後約 4 小時內每 15 分鐘試一次；之後再試兩次作後備。
-    # 已有數據時不會重複寫入。
+    # 攪珠：星期二、五晚 10:30pm 東岸時間 = UTC 星期三、六 02:30（夏令）或 03:30（冬令）
+    # 主窗口：UTC 星期三、六 02:05–05:50，每 15 分鐘試一次（攪珠前後約 3 小時）
     - cron: "5,20,35,50 2-5 * * 3,6"
+    # 後備：主窗口之後再試兩次
     - cron: "17 7,13 * * 3,6"
   workflow_dispatch:
     inputs:
@@ -17,9 +17,15 @@ on:
 permissions:
   contents: write
 
+# 同一時間只允許一個更新 run，避免兩個 run 同時 push 撞車
+concurrency:
+  group: update-draws
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,16 +40,20 @@ jobs:
         id: fetch
         continue-on-error: true
         run: python scripts/update_draws.py
-      - name: Commit new data
+      - name: Commit and push new data
         if: ${{ !inputs.verify_all }}
         run: |
-          if ! git diff --quiet data/draws.json; then
-            git config user.name "drawnight-bot"
-            git config user.email "actions@users.noreply.github.com"
-            git add data/draws.json
-            git commit -m "Add latest Lotto Max draw"
-            git push
+          if git diff --quiet data/draws.json; then
+            echo "沒有數據變化，略過 commit。"
+            exit 0
           fi
+          git config user.name "drawnight-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/draws.json
+          git commit -m "Add latest Lotto Max draw"
+          # 推送前先同步遠端，避免你手動改過檔案時失敗
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push
       - name: Report problems
         if: ${{ !inputs.verify_all && steps.fetch.outcome == 'failure' }}
         run: exit 1
