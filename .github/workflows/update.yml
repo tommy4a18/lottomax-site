@@ -3,10 +3,12 @@ name: Update Lotto Max draws
 on:
   schedule:
     # 攪珠：星期二、五晚 10:30pm 東岸時間 = UTC 星期三、六 02:30（夏令）或 03:30（冬令）
-    # 主窗口：UTC 星期三、六 02:05–05:50，每 15 分鐘試一次（攪珠前後約 3 小時）
+    # 1) 一般排程：UTC 02:05–05:50 每 15 分鐘試一次。讀唔到都唔會寄電郵。
     - cron: "5,20,35,50 2-5 * * 3,6"
-    # 後備：主窗口之後再試兩次
-    - cron: "17 7,13 * * 3,6"
+    # 2) 檢查排程：UTC 06:47（攪珠後 3 小時以上）。仍然冇最新一期先寄一封電郵。
+    - cron: "47 6 * * 3,6"
+    # 3) 最後後備：UTC 13:17 再試一次。唔會寄電郵。
+    - cron: "17 13 * * 3,6"
   workflow_dispatch:
     inputs:
       verify_all:
@@ -26,6 +28,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # manual = 手動執行；alert = 檢查排程（會寄電郵）；quiet = 其他排程（唔寄電郵）
+      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && 'manual' || (github.event.schedule == '47 6 * * 3,6' && 'alert' || 'quiet') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,7 +44,9 @@ jobs:
         if: ${{ !inputs.verify_all }}
         id: fetch
         continue-on-error: true
-        run: python scripts/update_draws.py
+        run: |
+          echo "執行模式：$RUN_MODE"
+          python scripts/update_draws.py
       - name: Commit and push new data
         if: ${{ !inputs.verify_all }}
         run: |
