@@ -7,16 +7,22 @@
      下期頭獎金額：PlayNow 官方優先，否則用 lottomaxnumbers 嗰行「?」旁邊嘅金額
   2. 檢查每一期（7 個不重複號碼 + 特別號碼、號碼範圍、星期二/五、不是未來日期）
   3. 把 data/draws.json 未有的期數全部補上（不止最新一期）
-  4. 把下期攪珠日期同頭獎金額寫入 data/next.json
+  4. 把下期攪珠日期、頭獎金額同 MaxPlus 寫入 data/next.json
   5. 各來源結果不一致時，不寫入該期
-  6. 數據已經係最新時，唔會去讀來源網站（減少被封鎖機會）
-  7. 所有來源都連唔到：自動叫 GitHub 開過一部新機再試（最多 4 次）
-  8. 電郵通知：每個攪珠日最多一封，只有「檢查」排程仍然缺少最新一期先寄
+  6. 攪珠結果同頭獎都已經係最新時，唔會去讀來源網站
+
+時間：一律用溫哥華（太平洋）時間。攪珠：星期二、五晚 8:30pm
+
+結束代碼（workflow 會按呢個決定下一步）：
+  0 ＝ 最新一期已經有（頭獎未出都算，頭獎有自己嘅排程）
+  3 ＝ 來源連到，但最新一期結果仲未出 → workflow 5 分鐘後再問
+  4 ＝ 所有來源都連唔到 → workflow 開過一部新機再試
+  1 ＝ 有問題要通知你（只會喺「檢查」排程或者手動執行出現）
 
 RUN_MODE（由 workflow 設定）：
-  quiet  ＝ 一般排程：有問題都唔變紅色
-  alert  ＝ 檢查排程：仍然缺少最新一期或數據不一致就變紅色（寄一封電郵）
-  manual ＝ 手動執行：一定去讀來源，有任何問題都變紅色
+  quiet  ＝ 一般排程：唔會報錯
+  alert  ＝ 檢查排程：仍然缺少最新一期或數據不一致就報錯（寄一封電郵）
+  manual ＝ 手動執行：一定去讀來源，有任何問題都報錯
 
 用法：
   python scripts/update_draws.py              # 按 RUN_MODE 執行（預設 manual）
@@ -43,8 +49,10 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml",
     "Accept-Language": "en-CA,en;q=0.8",
 }
-DRAW_TIME = dt.time(22, 30)   # 東岸時間晚上 10:30 攪珠
-RESULT_DELAY_MIN = 30         # 攪珠後大約幾多分鐘先有結果
+TZ_NAME = "America/Vancouver"
+DRAW_TIME = dt.time(20, 30)   # 溫哥華時間晚上 8:30 攪珠（PlayNow 公佈）
+RESULT_DELAY_MIN = 5          # 攪珠後幾多分鐘開始當「應該有結果」
+WATCH_HOURS = 4               # 攪珠後最多等幾多個鐘（之後交俾檢查排程）
 MONTHS = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
 # 接受 "November 13 2026"、"Nov 13, 2026"、"Friday, November 13, 2026" 等寫法
@@ -57,16 +65,16 @@ AMOUNT_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(million|m\b)?", re.I)
 
 # ---------------------------------------------------------------- 時間
 
-def now_eastern():
+def now_local():
     try:
         from zoneinfo import ZoneInfo
-        return dt.datetime.now(ZoneInfo("America/Toronto")).replace(tzinfo=None)
+        return dt.datetime.now(ZoneInfo(TZ_NAME)).replace(tzinfo=None)
     except Exception:
-        return dt.datetime.utcnow() - dt.timedelta(hours=5)
+        return dt.datetime.utcnow() - dt.timedelta(hours=8)
 
 
-def today_eastern():
-    return now_eastern().date()
+def today_local():
+    return now_local().date()
 
 
 def is_draw_day(d):
@@ -75,7 +83,7 @@ def is_draw_day(d):
 
 def expected_latest(now=None):
     """最近一期「應該已經有結果」的攪珠日期，及距離攪珠過了幾多個鐘。"""
-    now = now or now_eastern()
+    now = now or now_local()
     d = now.date()
     for _ in range(8):
         if is_draw_day(d):
@@ -87,8 +95,8 @@ def expected_latest(now=None):
 
 
 def upcoming_draw(now=None):
-    """下一期（未攪珠）的日期。攪珠日 10:30pm 之前就係當日。"""
-    now = now or now_eastern()
+    """下一期（未攪珠）的日期。攪珠日 8:30pm 之前就係當日。"""
+    now = now or now_local()
     d = now.date()
     for _ in range(8):
         if is_draw_day(d) and now < dt.datetime.combine(d, DRAW_TIME):
@@ -113,7 +121,7 @@ def valid(date, nums, bonus):
         d = dt.date.fromisoformat(date)
     except ValueError:
         return False
-    if d > today_eastern() or date < "2009-09-25":
+    if d > today_local() or date < "2009-09-25":
         return False
     days = (1, 4) if date >= "2019-05-14" else (4,)
     if d.weekday() not in days:
@@ -299,30 +307,9 @@ def save_next(info):
         print("已更新下期頭獎：%s $%s（來源：%s）" % (info["date"], format(info["jackpot"], ","), info["source"]))
 
 
-def github_output(key, value):
-    path = os.environ.get("GITHUB_OUTPUT")
-    if path:
-        with open(path, "a", encoding="utf-8") as f:
-            f.write("%s=%s\n" % (key, value))
-
-
 # ---------------------------------------------------------------- 主流程
 
-def finish(mode, problem, unreachable=False):
-    """有問題時決定：開新機再試、紅色、定係只留提示。"""
-    if not problem:
-        return 0
-    attempt = int(os.environ.get("ATTEMPT", "1") or 1)
-    max_attempts = int(os.environ.get("MAX_ATTEMPTS", "1") or 1)
-    if unreachable and attempt < max_attempts:
-        github_output("retry", "true")
-        print("提示：%s。會自動開過一部新機再試（第 %d / %d 次）。" % (problem, attempt + 1, max_attempts))
-        return 0
-    if mode in ("manual", "alert"):
-        print("錯誤：" + problem)
-        return 1
-    print("提示：%s。下一次排程會再試，今次唔當失敗。" % problem)
-    return 0
+OK, PROBLEM, WAITING, UNREACHABLE = 0, 1, 3, 4
 
 
 def update(mode="quiet"):
@@ -330,10 +317,9 @@ def update(mode="quiet"):
     have = {d["date"]: d for d in draws}
     exp, hours = expected_latest()
     upcoming = upcoming_draw()
-    nxt = load_next()
-    if mode != "manual" and exp in have and nxt.get("date") == upcoming:
+    if mode != "manual" and exp in have and load_next().get("date") == upcoming:
         print("數據已是最新（已有 %s 一期，同 %s 嘅頭獎金額），今次唔使讀取來源。" % (exp, upcoming))
-        return 0
+        return OK
 
     results, jackpots, reached = [], [], 0
     for name, url, parser in SOURCES:
@@ -352,10 +338,11 @@ def update(mode="quiet"):
     if jackpots:
         # 官方 PlayNow 優先，否則用第一個讀到嘅
         best = next((j for j in jackpots if j["source"].startswith("PlayNow")), jackpots[0])
-        save_next(dict(best, updated=now_eastern().strftime("%Y-%m-%d %H:%M")))
+        save_next(dict(best, updated=now_local().strftime("%Y-%m-%d %H:%M")))
 
     if not reached:
-        return finish(mode, "所有來源都連唔到，歷史記錄維持不變", unreachable=True)
+        print("所有來源都連唔到，歷史記錄維持不變。")
+        return UNREACHABLE
 
     numbers_seen = {tuple(d["numbers"]): d["date"] for d in draws}
     conflicts, added = [], []
@@ -379,19 +366,32 @@ def update(mode="quiet"):
         print("已新增 %d 期：%s" % (len(added), "、".join(added)))
     else:
         print("沒有新的攪珠結果。")
-    if not jackpots:
-        print("提示：今次未讀到下期頭獎金額。")
+    if load_next().get("date") != upcoming:
+        print("提示：%s 嘅頭獎金額仲未公佈，頭獎排程會繼續試。" % upcoming)
+
+    loud = mode in ("manual", "alert")
     if conflicts:
-        return finish(mode, "以下日期各來源或現有記錄不一致，未有寫入，請人手核對：" + "、".join(conflicts))
+        print(("錯誤：" if loud else "提示：") + "以下日期各來源或現有記錄不一致，未有寫入，請人手核對："
+              + "、".join(conflicts))
+        if loud:
+            return PROBLEM
     if exp and exp not in {d["date"] for d in draws}:
-        return finish(mode, "攪珠後 %.1f 小時，來源網站仍未有 %s 的結果" % (hours, exp))
-    return 0
+        msg = "攪珠後 %.1f 小時，來源網站仍未有 %s 的結果" % (hours, exp)
+        if loud:
+            print("錯誤：" + msg)
+            return PROBLEM
+        if hours > WATCH_HOURS:
+            print("提示：%s。已超過等候時間，交俾檢查排程處理。" % msg)
+            return OK
+        print("提示：%s，稍後再試。" % msg)
+        return WAITING
+    return OK
 
 
 def verify_all():
     have = {d["date"]: (d["numbers"], d["bonus"]) for d in load()}
     bad = checked = 0
-    for year in range(2009, today_eastern().year + 1):
+    for year in range(2009, today_local().year + 1):
         html, _ = fetch(YEAR_URL.format(year=year))
         found = parse_table(html)[0] if html else {}
         for date, val in sorted(found.items()):
