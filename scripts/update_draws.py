@@ -2,13 +2,13 @@
 """Lotto Max 自動更新程式 (DrawNight)
 
 每次執行會：
-  1. 由三個公開資料來源讀取最近的攪珠結果
-     （兩個 lottonumbers 網站 + BCLC 官方 PlayNow 的 JSON 數據）
-     下期頭獎金額：PlayNow 官方優先，否則用 lottomaxnumbers 嗰行「?」旁邊嘅金額
-  2. 檢查每一期（7 個不重複號碼 + 特別號碼、號碼範圍、星期二/五、不是未來日期）
-  3. 把 data/draws.json 未有的期數全部補上（不止最新一期）
-  4. 把下期攪珠日期、頭獎金額同 MaxPlus 寫入 data/next.json
-  5. 各來源結果不一致時，不寫入該期
+  1. 官方先：先讀 BCLC 官方 PlayNow 的 JSON 數據（攪珠結果 + 下期頭獎）。
+     兩樣都攞到就完成，唔使讀後備網站。
+  2. 官方未有或者連唔到，先讀後備：lottomaxnumbers.com、ca.lottonumbers.com
+  3. 官方話事：官方同後備數字唔一樣，以官方為準，log 留低警告。
+     冇官方數字嗰期，後備網站之間要一致先寫入。
+  4. 檢查每一期（7 個不重複號碼 + 特別號碼、號碼範圍、星期二/五、不是未來日期）
+  5. 把 data/draws.json 未有的期數全部補上；下期攪珠日期、頭獎金額同 MaxPlus 寫入 data/next.json
   6. 攪珠結果同頭獎都已經係最新時，唔會去讀來源網站
 
 時間：一律用溫哥華（太平洋）時間。攪珠：星期二、五晚 8:30pm
@@ -248,12 +248,15 @@ def parse_playnow_jackpot(text):
     return {}, [info]
 
 
-SOURCES = [
-    ("lottomaxnumbers.com", "https://www.lottomaxnumbers.com/past-numbers", parse_table),
-    ("ca.lottonumbers.com", "https://ca.lottonumbers.com/lotto-max/past-numbers", parse_table),
-    # 網址入面嘅 {date} 會換成最近一期攪珠日期
+# 官方來源：先讀。網址入面嘅 {date} 會換成最近一期攪珠日期
+OFFICIAL = [
     ("PlayNow (BCLC 官方)", PLAYNOW_URL, parse_playnow),
     ("PlayNow 頭獎 (BCLC 官方)", PLAYNOW_JACKPOT_URL, parse_playnow_jackpot),
+]
+# 後備來源：官方未齊數據先讀
+BACKUP = [
+    ("lottomaxnumbers.com", "https://www.lottomaxnumbers.com/past-numbers", parse_table),
+    ("ca.lottonumbers.com", "https://ca.lottonumbers.com/lotto-max/past-numbers", parse_table),
 ]
 
 
@@ -321,19 +324,39 @@ def update(mode="quiet"):
         print("數據已是最新（已有 %s 一期，同 %s 嘅頭獎金額），今次唔使讀取來源。" % (exp, upcoming))
         return OK
 
-    results, jackpots, reached = [], [], 0
-    for name, url, parser in SOURCES:
-        print("讀取", name)
-        html, connected = fetch(url.format(date=exp))
-        if connected:
-            reached += 1
-        found, jp = parser(html) if html else ({}, [])
-        if jp:
-            print("  下期頭獎 %s：$%s" % (jp[0]["date"], format(jp[0]["jackpot"], ",")))
-        if parser is not parse_playnow_jackpot:
-            print("  讀到 %d 期" % len(found))
-        results.append(found)
-        jackpots += [dict(j, source=name) for j in jp]
+    def read(sources):
+        found_all, jps, ok = {}, [], 0
+        for name, url, parser in sources:
+            print("讀取", name)
+            html, connected = fetch(url.format(date=exp))
+            ok += connected
+            found, jp = parser(html) if html else ({}, [])
+            if jp:
+                print("  下期頭獎 %s：$%s" % (jp[0]["date"], format(jp[0]["jackpot"], ",")))
+            if parser is not parse_playnow_jackpot:
+                print("  讀到 %d 期" % len(found))
+            found_all[name] = found
+            jps += [dict(j, source=name) for j in jp]
+        return found_all, jps, ok
+
+    # 1) 官方先
+    official, jackpots, reached = read(OFFICIAL)
+    official_draws = {}
+    for found in official.values():
+        official_draws.update(found)
+    draw_ok = exp in have or exp in official_draws
+    jackpot_ok = load_next().get("date") == upcoming or any(j["date"] == upcoming for j in jackpots)
+
+    # 2) 官方未齊先讀後備
+    backup = {}
+    if draw_ok and jackpot_ok:
+        print("官方數據已齊，唔使讀後備網站。")
+    else:
+        print("官方數據未齊（%s），讀後備網站……" % "、".join(
+            x for x, ok in (("攪珠結果", draw_ok), ("頭獎", jackpot_ok)) if not ok))
+        backup, jp_b, ok_b = read(BACKUP)
+        jackpots += jp_b
+        reached += ok_b
 
     if jackpots:
         # 官方 PlayNow 優先，否則用第一個讀到嘅
@@ -344,23 +367,34 @@ def update(mode="quiet"):
         print("所有來源都連唔到，歷史記錄維持不變。")
         return UNREACHABLE
 
+    # 3) 合併：官方話事；冇官方數字嗰期，後備之間要一致
     numbers_seen = {tuple(d["numbers"]): d["date"] for d in draws}
     conflicts, added = [], []
-    for date in sorted(set().union(*results)):
-        seen = [r[date] for r in results if date in r]
-        if any(x != seen[0] for x in seen):
-            conflicts.append(date)
-            continue
-        nums, bonus = seen[0]
+    all_dates = set(official_draws)
+    for found in backup.values():
+        all_dates |= set(found)
+    for date in sorted(all_dates):
+        others = [found[date] for found in backup.values() if date in found]
+        if date in official_draws:
+            value, src = official_draws[date], "官方"
+            for name, found in backup.items():
+                if date in found and found[date] != value:
+                    print("警告：%s 一期 %s 嘅數字同官方唔一樣，以官方為準。" % (date, name))
+        else:
+            if any(x != others[0] for x in others):
+                conflicts.append(date)
+                continue
+            value, src = others[0], "後備" if len(others) > 1 else "單一後備來源"
+        nums, bonus = value
         if date in have:
             if have[date]["numbers"] != nums or have[date]["bonus"] != bonus:
-                conflicts.append(date)
+                conflicts.append("%s（同現有記錄唔一樣）" % date)
             continue
         if tuple(nums) in numbers_seen:   # 同舊一期一模一樣，多數係網站未更新
             conflicts.append("%s（號碼同 %s 一樣）" % (date, numbers_seen[tuple(nums)]))
             continue
         draws.append({"date": date, "numbers": nums, "bonus": bonus})
-        added.append("%s%s" % (date, "" if len(seen) > 1 else "（單一來源）"))
+        added.append("%s（%s）" % (date, src))
     if added:
         save(draws)
         print("已新增 %d 期：%s" % (len(added), "、".join(added)))
