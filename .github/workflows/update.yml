@@ -2,13 +2,20 @@ name: Update Lotto Max draws
 
 on:
   schedule:
-    # 攪珠：星期二、五晚 10:30pm 東岸時間 = UTC 星期三、六 02:30（夏令）或 03:30（冬令）
-    # 1) 一般排程：UTC 02:05–05:50 每 15 分鐘試一次。讀唔到都唔會寄電郵。
-    - cron: "5,20,35,50 2-5 * * 3,6"
-    # 2) 檢查排程：UTC 06:47（攪珠後 3 小時以上）。仍然冇最新一期先寄一封電郵。
-    - cron: "47 6 * * 3,6"
-    # 3) 最後後備：UTC 13:17 再試一次。唔會寄電郵。
-    - cron: "17 13 * * 3,6"
+    # 攪珠：星期二、五晚 8:30pm 溫哥華時間 = UTC 星期三、六 04:30（冬令）或 03:30（夏令）
+    # GitHub 排程只可以用 UTC，為咗冬令夏令都涵蓋到，由 UTC 03:35 開始。
+    # 冬令時 7:35pm、7:50pm 嗰兩次喺攪珠前，幾秒就完成，唔會讀來源。
+    #
+    # 1) 攪珠排程：UTC 03:35–07:50 每 15 分鐘觸發一次。
+    #    觸發之後，如果結果未出，會喺同一個 run 入面每 5 分鐘再問，
+    #    直到攞到結果（最多等到攪珠後 4 小時），唔使靠 GitHub 下一次排程。
+    - cron: "35,50 3 * * 3,6"
+    - cron: "5,20,35,50 4-7 * * 3,6"
+    # 2) 檢查排程：UTC 08:47（冬令 12:47am／夏令 1:47am）。仍然冇最新一期先寄一封電郵。
+    - cron: "47 8 * * 3,6"
+    # 3) 頭獎排程：攪珠後兩日內每 2 小時一次，攞下期頭獎金額（亦會順手補攪珠結果）。
+    #    頭獎已經有就幾秒完成。唔會寄電郵。
+    - cron: "17 */2 * * 3,4,6,0"
   workflow_dispatch:
     inputs:
       verify_all:
@@ -20,6 +27,10 @@ on:
         type: choice
         options: [manual, quiet, alert]
         default: manual
+      watch:
+        description: "內部用，唔使剔"
+        type: boolean
+        default: false
       attempt:
         description: "內部用，唔使改"
         type: string
@@ -37,12 +48,16 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 300
     env:
       # manual = 手動執行；alert = 檢查排程（會寄電郵）；quiet = 其他排程（唔寄電郵）
-      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '47 6 * * 3,6' && 'alert' || 'quiet') }}
+      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '47 8 * * 3,6' && 'alert' || 'quiet') }}
+      # true = 結果未出就每 5 分鐘再問（只限攪珠排程）
+      WATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.watch || (github.event.schedule == '35,50 3 * * 3,6' || github.event.schedule == '5,20,35,50 4-7 * * 3,6') }}
       ATTEMPT: ${{ inputs.attempt || '1' }}
       MAX_ATTEMPTS: "4"
+      POLL_MINUTES: "5"
+      WATCH_MAX_MINUTES: "270"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -55,33 +70,54 @@ jobs:
       - name: Fetch new draws
         if: ${{ !inputs.verify_all }}
         id: fetch
-        continue-on-error: true
         run: |
-          echo "執行模式：$RUN_MODE，第 $ATTEMPT / $MAX_ATTEMPTS 次"
-          python scripts/update_draws.py
-      - name: Commit and push new data
-        if: ${{ !inputs.verify_all }}
-        run: |
-          if [ -z "$(git status --porcelain data/)" ]; then
-            echo "沒有數據變化，略過 commit。"
-            exit 0
-          fi
+          echo "執行模式：$RUN_MODE，等候結果：$WATCH，第 $ATTEMPT / $MAX_ATTEMPTS 部機"
           git config user.name "drawnight-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/
-          git commit -m "Update Lotto Max data"
-          # 推送前先同步遠端，避免你手動改過檔案時失敗
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push
+
+          commit_data() {
+            if [ -n "$(git status --porcelain data/)" ]; then
+              git add data/
+              git commit -m "Update Lotto Max data"
+              # 推送前先同步遠端，避免你手動改過檔案時失敗
+              git pull --rebase origin "$GITHUB_REF_NAME"
+              git push
+              echo "已上傳新數據，網站會自動更新。"
+            fi
+          }
+
+          deadline=$(( $(date +%s) + WATCH_MAX_MINUTES * 60 ))
+          while true; do
+            set +e
+            python scripts/update_draws.py
+            rc=$?
+            set -e
+            commit_data
+            case "$rc" in
+              0) status=done; break ;;
+              3) status=waiting
+                 if [ "$WATCH" != "true" ] || [ $(( $(date +%s) + POLL_MINUTES * 60 )) -gt "$deadline" ]; then
+                   break
+                 fi
+                 echo "----- 結果未出，$POLL_MINUTES 分鐘後再問 -----"
+                 sleep $(( POLL_MINUTES * 60 )) ;;
+              4) status=unreachable; break ;;
+              *) status=problem; break ;;
+            esac
+          done
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "今次結果：$status"
       - name: Retry on a new machine
-        if: ${{ !inputs.verify_all && steps.fetch.outputs.retry == 'true' }}
+        if: ${{ !inputs.verify_all && steps.fetch.outputs.status == 'unreachable' && fromJSON(env.ATTEMPT) < fromJSON(env.MAX_ATTEMPTS) }}
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           gh workflow run update.yml --ref "$GITHUB_REF_NAME" \
-            -f mode="$RUN_MODE" -f attempt="$((ATTEMPT + 1))"
-          echo "已排定第 $((ATTEMPT + 1)) 次嘗試。"
+            -f mode="$RUN_MODE" -f watch="$WATCH" -f attempt="$((ATTEMPT + 1))"
+          echo "呢部機連唔到任何來源，已經開咗第 $((ATTEMPT + 1)) 部機再試。"
       - name: Report problems
-        if: ${{ !inputs.verify_all && steps.fetch.outcome == 'failure' }}
-        run: exit 1
+        if: ${{ !inputs.verify_all && (steps.fetch.outputs.status == 'problem' || (steps.fetch.outputs.status == 'unreachable' && fromJSON(env.ATTEMPT) >= fromJSON(env.MAX_ATTEMPTS) && env.RUN_MODE != 'quiet')) }}
+        run: |
+          echo "有問題需要你處理，請睇上面「Fetch new draws」嘅記錄。"
+          exit 1
