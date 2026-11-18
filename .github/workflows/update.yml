@@ -15,9 +15,19 @@ on:
         description: "逐年覆核全部歷史數據（只報告，不修改）"
         type: boolean
         default: false
+      mode:
+        description: "內部用，唔使改"
+        type: choice
+        options: [manual, quiet, alert]
+        default: manual
+      attempt:
+        description: "內部用，唔使改"
+        type: string
+        default: "1"
 
 permissions:
-  contents: write
+  contents: write   # 寫入新數據
+  actions: write    # 連唔到時自動開新機再試
 
 # 同一時間只允許一個更新 run，避免兩個 run 同時 push 撞車
 concurrency:
@@ -30,10 +40,12 @@ jobs:
     timeout-minutes: 10
     env:
       # manual = 手動執行；alert = 檢查排程（會寄電郵）；quiet = 其他排程（唔寄電郵）
-      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && 'manual' || (github.event.schedule == '47 6 * * 3,6' && 'alert' || 'quiet') }}
+      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '47 6 * * 3,6' && 'alert' || 'quiet') }}
+      ATTEMPT: ${{ inputs.attempt || '1' }}
+      MAX_ATTEMPTS: "4"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install requests beautifulsoup4
@@ -45,22 +57,31 @@ jobs:
         id: fetch
         continue-on-error: true
         run: |
-          echo "執行模式：$RUN_MODE"
+          echo "執行模式：$RUN_MODE，第 $ATTEMPT / $MAX_ATTEMPTS 次"
           python scripts/update_draws.py
       - name: Commit and push new data
         if: ${{ !inputs.verify_all }}
         run: |
-          if git diff --quiet data/draws.json; then
+          if [ -z "$(git status --porcelain data/)" ]; then
             echo "沒有數據變化，略過 commit。"
             exit 0
           fi
           git config user.name "drawnight-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/draws.json
-          git commit -m "Add latest Lotto Max draw"
+          git add data/
+          git commit -m "Update Lotto Max data"
           # 推送前先同步遠端，避免你手動改過檔案時失敗
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push
+      - name: Retry on a new machine
+        if: ${{ !inputs.verify_all && steps.fetch.outputs.retry == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh workflow run update.yml --ref "$GITHUB_REF_NAME" \
+            -f mode="$RUN_MODE" -f attempt="$((ATTEMPT + 1))"
+          echo "已排定第 $((ATTEMPT + 1)) 次嘗試。"
       - name: Report problems
         if: ${{ !inputs.verify_all && steps.fetch.outcome == 'failure' }}
         run: exit 1
