@@ -155,6 +155,7 @@ details.more .cards{margin-top:10px}
 .chk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px;align-items:start}
 .chkin{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
 .chkin input{width:58px;text-align:center;font-weight:700;font-size:17px;padding:8px 4px;-moz-appearance:textfield}
+.chkin input.bad{border-color:var(--warn);background:#3a1a14;color:#ffd9cc}
 .chkin input::-webkit-outer-spin-button,.chkin input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .res{display:grid;gap:16px}
 .res h3{font-size:15px;letter-spacing:.06em;color:var(--dim)}
@@ -221,12 +222,31 @@ footer p{max-width:60ch;line-height:1.55}
 @media (max-width:860px){
   .hero .wrap,.gen,.two,.chk{grid-template-columns:1fr}
   .machine{position:static}
-  .top .wrap{gap:6px 12px;min-height:54px}
-  .top nav{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  .top nav::-webkit-scrollbar{display:none}
-  .top nav a{padding:4px 8px;font-size:14px}
+  .top .wrap{gap:4px 12px;min-height:54px}
+  .top nav{order:3;flex-basis:100%;flex-wrap:wrap;gap:2px 0;justify-content:space-between;padding-bottom:2px}
+  .top nav a{padding:4px 7px;font-size:14px}
   .langbox{margin-left:auto}
   html{scroll-padding-top:116px}
+}
+/* Past results: on phones each draw becomes a stacked card instead of a wide table */
+@media (max-width:700px){
+  table{min-width:0}
+  thead{display:none}
+  tbody tr{display:grid;grid-template-columns:auto auto;justify-content:space-between;gap:7px 14px;padding:13px 15px;border-bottom:1px solid var(--line)}
+  tbody tr:last-child{border-bottom:0}
+  tbody td{border:0;padding:0;white-space:normal}
+  tbody td:nth-child(1){grid-column:1/-1;color:var(--ink);font-weight:600;font-size:15px}
+  tbody td:nth-child(2),tbody td[colspan]{grid-column:1/-1}
+  tbody td.num{font-size:13px;color:var(--ink)}
+  tbody td.num::before{content:attr(data-label) " ";color:var(--dim);font-weight:400}
+  tbody .balls{gap:4px;flex-wrap:nowrap}
+  tbody .ball{width:30px;height:30px;font-size:13px}
+  tbody .plus{padding:0;font-size:12px}
+}
+@media (max-width:380px){
+  tbody .balls{gap:3px}
+  tbody .ball{width:26px;height:26px;font-size:12px}
+  tbody tr{padding:12px}
 }
 :lang(zh) h1{font-size:clamp(26px,7vw,54px);line-height:1.2}
 :lang(pa) h1,:lang(hi) h1{font-size:clamp(28px,4.2vw,48px);line-height:1.35}
@@ -407,7 +427,7 @@ footer p{max-width:60ch;line-height:1.55}
 <script>
 const I18N={
 en:{
-nav_history:"Past Results",nav_analysis:"Statistics",nav_patterns:"Findings",nav_checker:"Check Numbers",nav_generator:"Generator",
+nav_history:"Results",nav_analysis:"Stats",nav_patterns:"Findings",nav_checker:"Check",nav_generator:"Generator",
 hero_kicker:"Lotto Max Data Analyzer",hero_title:"Every draw since 2009, counted and checked.",hero_latest:"Latest draw",bonus:"Bonus",
 cta_generate:"Generate numbers",ad_label:"Advertisement",
 next_draw:"Next draw",tonight:"Tonight",est_jackpot:"Estimated jackpot {amount}",jackpot_tba:"Jackpot not announced yet",
@@ -457,7 +477,7 @@ method_b:"Each number's count was compared with an even spread using a chi-squar
 new_note:"Only {n} draws have used the 1–52 pool, so anything about 51 and 52 rests on a small sample.",
 
 c_title:"Check your numbers",c_sub:"Enter seven numbers to see how they did against the latest draw.",
-c_your:"Your seven numbers",c_check:"Check",c_clear:"Clear",c_err:"Enter seven different numbers between 1 and {n}.",
+c_your:"Your seven numbers",c_check:"Check",c_clear:"Clear",c_err_dup:"These numbers are entered more than once: {list}.",c_err:"Enter seven different numbers between 1 and {n}.",
 c_latest:"Against the latest draw",c_latest_r:"{k} of 7 matched",c_plus_bonus:"plus the bonus number",
 c_best:"Closest match since 2009",c_best_r:"{k} of 7",c_best_more:"and {n} other draw(s)",
 c_never:"This exact combination has never been drawn. Neither has any other — all {n} draws are different.",
@@ -488,7 +508,7 @@ foot_cr_t:"Copyright",
 foot_cr:"© {y} DrawNight. All rights reserved. The site design, text and analysis may not be copied or reused without permission."},
 
 fr:{
-nav_history:"Résultats",nav_analysis:"Statistiques",nav_patterns:"Constats",nav_checker:"Vérifier",nav_generator:"Générateur",
+nav_history:"Résultats",nav_analysis:"Stats",nav_patterns:"Constats",nav_checker:"Vérifier",nav_generator:"Générateur",
 hero_kicker:"Analyseur de données Lotto Max",hero_title:"Chaque tirage depuis 2009, compté et vérifié.",hero_latest:"Dernier tirage",bonus:"Complémentaire",
 cta_generate:"Générer des numéros",ad_label:"Publicité",
 next_draw:"Prochain tirage",tonight:"Ce soir",est_jackpot:"Gros lot estimé {amount}",jackpot_tba:"Gros lot non encore annoncé",
@@ -538,7 +558,7 @@ method_b:"La fréquence de chaque numéro a été comparée à une répartition 
 new_note:"Seulement {n} tirages ont utilisé le bassin 1–52 : tout ce qui concerne le 51 et le 52 repose sur un petit échantillon.",
 
 c_title:"Vérifiez vos numéros",c_sub:"Entrez sept numéros pour voir leur résultat au dernier tirage.",
-c_your:"Vos sept numéros",c_check:"Vérifier",c_clear:"Effacer",c_err:"Entrez sept numéros différents entre 1 et {n}.",
+c_your:"Vos sept numéros",c_check:"Vérifier",c_clear:"Effacer",c_err_dup:"Ces numéros sont saisis plus d'une fois : {list}.",c_err:"Entrez sept numéros différents entre 1 et {n}.",
 c_latest:"Au dernier tirage",c_latest_r:"{k} sur 7 corrects",c_plus_bonus:"plus le numéro complémentaire",
 c_best:"Meilleur rapprochement depuis 2009",c_best_r:"{k} sur 7",c_best_more:"et {n} autre(s) tirage(s)",
 c_never:"Cette combinaison exacte n'est jamais sortie. Aucune autre non plus — les {n} tirages sont tous différents.",
@@ -569,7 +589,7 @@ foot_cr_t:"Droits d'auteur",
 foot_cr:"© {y} DrawNight. Tous droits réservés. La conception, les textes et les analyses de ce site ne peuvent être copiés ni réutilisés sans autorisation."},
 
 "zh-Hant":{
-nav_history:"歷史結果",nav_analysis:"數據統計",nav_patterns:"統計發現",nav_checker:"號碼核對",nav_generator:"號碼生成器",
+nav_history:"歷史",nav_analysis:"統計",nav_patterns:"發現",nav_checker:"核對",nav_generator:"生成器",
 hero_kicker:"Lotto Max 數據分析",hero_title:"2009 年起，|每一期攪珠均點算核對",hero_latest:"最新一期",bonus:"特別號碼",
 cta_generate:"生成號碼",ad_label:"廣告",
 next_draw:"下期攪珠",tonight:"今晚",est_jackpot:"估計頭獎 {amount}",jackpot_tba:"頭獎金額尚未公布",
@@ -619,7 +639,7 @@ method_b:"以卡方檢定比較各號碼的出現次數與平均分布。p 值�
 new_note:"1–52 號碼範圍僅使用了 {n} 期，有關 51 及 52 的結論建基於較小樣本。",
 
 c_title:"核對你的號碼",c_sub:"輸入七個號碼，查看對最新一期的中獎情況。",
-c_your:"你的七個號碼",c_check:"核對",c_clear:"清除",c_err:"請輸入七個不相同、介乎 1 至 {n} 的號碼。",
+c_your:"你的七個號碼",c_check:"核對",c_clear:"清除",c_err_dup:"以下號碼重複輸入了：{list}。",c_err:"請輸入七個不相同、介乎 1 至 {n} 的號碼。",
 c_latest:"對最新一期",c_latest_r:"七個中 {k} 個",c_plus_bonus:"另中特別號碼",
 c_best:"2009 年至今最接近的一期",c_best_r:"七個中 {k} 個",c_best_more:"另有 {n} 期相同",
 c_never:"此組合從未開出。其他組合亦然，全部 {n} 期均不相同。",
@@ -650,7 +670,7 @@ foot_cr_t:"版權",
 foot_cr:"© {y} DrawNight。版權所有。未經許可，不得複製或使用本網站的設計、文字及分析內容。"},
 
 "zh-Hans":{
-nav_history:"历史结果",nav_analysis:"数据统计",nav_patterns:"统计发现",nav_checker:"号码核对",nav_generator:"号码生成器",
+nav_history:"历史",nav_analysis:"统计",nav_patterns:"发现",nav_checker:"核对",nav_generator:"生成器",
 hero_kicker:"Lotto Max 数据分析",hero_title:"2009 年起，|每一期开奖均点算核对",hero_latest:"最新一期",bonus:"特别号码",
 cta_generate:"生成号码",ad_label:"广告",
 next_draw:"下期开奖",tonight:"今晚",est_jackpot:"估计头奖 {amount}",jackpot_tba:"头奖金额尚未公布",
@@ -700,7 +720,7 @@ method_b:"以卡方检验比较各号码的出现次数与平均分布。p 值�
 new_note:"1–52 号码范围仅使用了 {n} 期，有关 51 及 52 的结论建立在较小样本上。",
 
 c_title:"核对你的号码",c_sub:"输入七个号码，查看对最新一期的中奖情况。",
-c_your:"你的七个号码",c_check:"核对",c_clear:"清除",c_err:"请输入七个不相同、介于 1 至 {n} 的号码。",
+c_your:"你的七个号码",c_check:"核对",c_clear:"清除",c_err_dup:"以下号码重复输入了：{list}。",c_err:"请输入七个不相同、介于 1 至 {n} 的号码。",
 c_latest:"对最新一期",c_latest_r:"七个中 {k} 个",c_plus_bonus:"另中特别号码",
 c_best:"2009 年至今最接近的一期",c_best_r:"七个中 {k} 个",c_best_more:"另有 {n} 期相同",
 c_never:"此组合从未开出。其他组合亦然，全部 {n} 期均不相同。",
@@ -731,7 +751,7 @@ foot_cr_t:"版权",
 foot_cr:"© {y} DrawNight。版权所有。未经许可，不得复制或使用本网站的设计、文字及分析内容。"},
 
 pa:{
-nav_history:"ਪਿਛਲੇ ਨਤੀਜੇ",nav_analysis:"ਅੰਕੜੇ",nav_patterns:"ਖੋਜਾਂ",nav_checker:"ਨੰਬਰ ਜਾਂਚ",nav_generator:"ਜਨਰੇਟਰ",
+nav_history:"ਨਤੀਜੇ",nav_analysis:"ਅੰਕੜੇ",nav_patterns:"ਖੋਜਾਂ",nav_checker:"ਜਾਂਚ",nav_generator:"ਜਨਰੇਟਰ",
 hero_kicker:"Lotto Max ਡਾਟਾ ਵਿਸ਼ਲੇਸ਼ਕ",hero_title:"2009 ਤੋਂ ਹਰ ਡਰਾਅ, ਗਿਣਿਆ ਅਤੇ ਜਾਂਚਿਆ ਗਿਆ।",hero_latest:"ਤਾਜ਼ਾ ਡਰਾਅ",bonus:"ਬੋਨਸ",
 cta_generate:"ਨੰਬਰ ਤਿਆਰ ਕਰੋ",ad_label:"ਇਸ਼ਤਿਹਾਰ",
 next_draw:"ਅਗਲਾ ਡਰਾਅ",tonight:"ਅੱਜ ਰਾਤ",est_jackpot:"ਅਨੁਮਾਨਿਤ ਜੈਕਪਾਟ {amount}",jackpot_tba:"ਜੈਕਪਾਟ ਅਜੇ ਘੋਸ਼ਿਤ ਨਹੀਂ",
@@ -781,7 +801,7 @@ method_b:"ਹਰ ਨੰਬਰ ਦੀ ਗਿਣਤੀ ਦੀ ਤੁਲਨਾ ਕ�
 new_note:"1–52 ਦੀ ਹੱਦ ਨਾਲ ਸਿਰਫ਼ {n} ਡਰਾਅ ਹੋਏ ਹਨ, ਇਸ ਲਈ 51 ਅਤੇ 52 ਬਾਰੇ ਹਰ ਗੱਲ ਛੋਟੇ ਨਮੂਨੇ 'ਤੇ ਟਿਕੀ ਹੈ।",
 
 c_title:"ਆਪਣੇ ਨੰਬਰ ਜਾਂਚੋ",c_sub:"ਸੱਤ ਨੰਬਰ ਭਰੋ ਅਤੇ ਤਾਜ਼ਾ ਡਰਾਅ ਨਾਲ ਉਨ੍ਹਾਂ ਦਾ ਨਤੀਜਾ ਦੇਖੋ।",
-c_your:"ਤੁਹਾਡੇ ਸੱਤ ਨੰਬਰ",c_check:"ਜਾਂਚੋ",c_clear:"ਮਿਟਾਓ",c_err:"1 ਤੋਂ {n} ਵਿਚਕਾਰ ਸੱਤ ਵੱਖ-ਵੱਖ ਨੰਬਰ ਭਰੋ।",
+c_your:"ਤੁਹਾਡੇ ਸੱਤ ਨੰਬਰ",c_check:"ਜਾਂਚੋ",c_clear:"ਮਿਟਾਓ",c_err_dup:"ਇਹ ਨੰਬਰ ਇੱਕ ਤੋਂ ਵੱਧ ਵਾਰ ਭਰੇ ਗਏ ਹਨ: {list}।",c_err:"1 ਤੋਂ {n} ਵਿਚਕਾਰ ਸੱਤ ਵੱਖ-ਵੱਖ ਨੰਬਰ ਭਰੋ।",
 c_latest:"ਤਾਜ਼ਾ ਡਰਾਅ ਦੇ ਮੁਕਾਬਲੇ",c_latest_r:"7 ਵਿੱਚੋਂ {k} ਮਿਲੇ",c_plus_bonus:"ਨਾਲ ਬੋਨਸ ਨੰਬਰ ਵੀ",
 c_best:"2009 ਤੋਂ ਸਭ ਤੋਂ ਨੇੜਲਾ ਮੇਲ",c_best_r:"7 ਵਿੱਚੋਂ {k}",c_best_more:"ਅਤੇ {n} ਹੋਰ ਡਰਾਅ",
 c_never:"ਇਹ ਸੁਮੇਲ ਕਦੇ ਨਹੀਂ ਨਿਕਲਿਆ। ਕੋਈ ਹੋਰ ਵੀ ਨਹੀਂ — ਸਾਰੇ {n} ਡਰਾਅ ਵੱਖਰੇ ਹਨ।",
@@ -812,7 +832,7 @@ foot_cr_t:"ਕਾਪੀਰਾਈਟ",
 foot_cr:"© {y} DrawNight. ਸਾਰੇ ਹੱਕ ਰਾਖਵੇਂ। ਇਸ ਸਾਈਟ ਦਾ ਡਿਜ਼ਾਈਨ, ਲਿਖਤ ਅਤੇ ਵਿਸ਼ਲੇਸ਼ਣ ਬਿਨਾਂ ਇਜਾਜ਼ਤ ਨਕਲ ਜਾਂ ਮੁੜ ਵਰਤੇ ਨਹੀਂ ਜਾ ਸਕਦੇ।"},
 
 hi:{
-nav_history:"पिछले नतीजे",nav_analysis:"आँकड़े",nav_patterns:"निष्कर्ष",nav_checker:"नंबर जाँच",nav_generator:"जनरेटर",
+nav_history:"नतीजे",nav_analysis:"आँकड़े",nav_patterns:"निष्कर्ष",nav_checker:"जाँच",nav_generator:"जनरेटर",
 hero_kicker:"Lotto Max डेटा विश्लेषक",hero_title:"2009 से हर ड्रॉ, गिना और जाँचा गया।",hero_latest:"ताज़ा ड्रॉ",bonus:"बोनस",
 cta_generate:"नंबर तैयार करें",ad_label:"विज्ञापन",
 next_draw:"अगला ड्रॉ",tonight:"आज रात",est_jackpot:"अनुमानित जैकपॉट {amount}",jackpot_tba:"जैकपॉट अभी घोषित नहीं",
@@ -862,7 +882,7 @@ method_b:"हर नंबर की गिनती की तुलना क�
 new_note:"1–52 की सीमा से सिर्फ़ {n} ड्रॉ हुए हैं, इसलिए 51 और 52 के बारे में हर बात छोटे नमूने पर टिकी है।",
 
 c_title:"अपने नंबर जाँचें",c_sub:"सात नंबर भरें और ताज़ा ड्रॉ के मुकाबले उनका नतीजा देखें।",
-c_your:"आपके सात नंबर",c_check:"जाँचें",c_clear:"मिटाएँ",c_err:"1 से {n} के बीच सात अलग-अलग नंबर भरें।",
+c_your:"आपके सात नंबर",c_check:"जाँचें",c_clear:"मिटाएँ",c_err_dup:"ये नंबर एक से अधिक बार भरे गए हैं: {list}।",c_err:"1 से {n} के बीच सात अलग-अलग नंबर भरें।",
 c_latest:"ताज़ा ड्रॉ के मुकाबले",c_latest_r:"7 में से {k} मिले",c_plus_bonus:"साथ में बोनस नंबर भी",
 c_best:"2009 से सबसे क़रीबी मेल",c_best_r:"7 में से {k}",c_best_more:"और {n} अन्य ड्रॉ",
 c_never:"यह संयोजन कभी नहीं निकला। कोई और भी नहीं — सभी {n} ड्रॉ अलग हैं।",
@@ -954,7 +974,7 @@ function renderHero(){const L=last(),sc=schedule(),N=L.pool,per=comb(N,7);
 /* ---------- history ---------- */
 function histList(){const h=S.h;return DRAWS.filter(d=>(!h.year||d.d.slice(0,4)===h.year)&&(!h.dow||d.dow===+h.dow)&&(!h.from||d.d>=h.from)&&(!h.to||d.d<=h.to)&&h.nums.every(v=>d.n.includes(v)||d.b===v)).reverse()}
 function renderHist(){const all=histList(),rows=all.slice(0,S.h.limit);
-  $('#hBody').innerHTML=rows.length?rows.map(d=>`<tr><td>${fmtDate(d.d)}</td><td><div class="balls">${ballsHtml(d)}</div></td><td class="num">${d.sum}</td><td class="num">${d.odd} : ${7-d.odd}</td></tr>`).join(''):`<tr><td colspan="4">${t('none')}</td></tr>`;
+  $('#hBody').innerHTML=rows.length?rows.map(d=>`<tr><td>${fmtDate(d.d)}</td><td><div class="balls">${ballsHtml(d)}</div></td><td class="num" data-label="${t('col_sum')}">${d.sum}</td><td class="num" data-label="${t('col_oe')}">${d.odd} : ${7-d.odd}</td></tr>`).join(''):`<tr><td colspan="4">${t('none')}</td></tr>`;
   $('#hCount').textContent=t('h_count',{a:nf(rows.length),b:nf(all.length)});
   const more=all.length>rows.length;$('#hMore').hidden=!more;$('#hAll').hidden=!more;$('#hAll').textContent=t('show_all',{b:nf(all.length)})}
 function histOptions(){const ys=[...new Set(DRAWS.map(d=>d.d.slice(0,4)))].reverse();
@@ -1038,6 +1058,12 @@ function renderFindings(){const ds=DRAWS,m=ds.length,cl=closest(),r=sumRange(),c
 function renderChkInputs(){const N=POOL();
   $('#chkIn').innerHTML=Array.from({length:7},(_,i)=>`<input type="number" min="1" max="${N}" inputmode="numeric" aria-label="${i+1}" value="${S.chk[i]||''}">`).join('')}
 function readChk(){return $$('#chkIn input').map(i=>parseInt(i.value,10)).filter(v=>!isNaN(v))}
+function chkIssues(){const N=POOL(),els=$$('#chkIn input'),vals=els.map(i=>i.value.trim()),seen={},dup=new Set();
+  vals.forEach(v=>{if(!v)return;if(seen[v])dup.add(v);seen[v]=1});
+  const bad=[];els.forEach((el,k)=>{const v=vals[k],n=parseInt(v,10);
+    const isDup=v&&dup.has(v),isBad=v&&(!/^\d{1,2}$/.test(v)||n<1||n>N);
+    el.classList.toggle('bad',!!(isDup||isBad));if(isBad)bad.push(v)});
+  return{dup:[...dup].sort((x,y)=>x-y),bad,N}}
 function renderChkResult(){const N=POOL(),v=S.chk,box=$('#chkRes');
   if(v.length!==7){box.innerHTML=`<p class="cap" style="margin:0">${t('c_empty')}</p>`;return}
   const set=new Set(v),L=last();
@@ -1051,7 +1077,8 @@ function renderChkResult(){const N=POOL(),v=S.chk,box=$('#chkRes');
     `<div><h3>${t('c_best')}</h3><b>${t('c_best_r',{k:best})}</b><p class="when">${fmtDate(dates[0])}${dates.length>1?' · '+t('c_best_more',{n:dates.length-1}):''}</p></div>`+
     `<div><h3>${t('c_counts')}</h3><div class="balls" style="gap:12px;margin-top:6px">${counts.map(c=>`<span style="display:grid;justify-items:center;gap:3px">${ball(c.x)}<small style="color:var(--dim);font-size:12px">${t('c_times',{c:c.c})}</small></span>`).join('')}</div></div>`+
     `<p class="when">${PAST.has(v.join('-'))?t('c_drawn',{d:fmtDate(PAST.get(v.join('-')))}):t('c_never',{n:nf(DRAWS.length)})}</p>`}
-function doCheck(){const N=POOL(),v=readChk();
+function doCheck(){const N=POOL(),v=readChk(),iss=chkIssues();
+  if(iss.dup.length){$('#chkMsg').textContent=t('c_err_dup',{list:iss.dup.join('、'.replace('、',', '))});S.chk=[];renderChkResult();return}
   if(v.length!==7||new Set(v).size!==7||v.some(x=>x<1||x>N)){$('#chkMsg').textContent=t('c_err',{n:N});S.chk=[];renderChkResult();return}
   $('#chkMsg').textContent='';S.chk=v.slice().sort((a,b)=>a-b);renderChkInputs();renderChkResult()}
 
@@ -1140,8 +1167,9 @@ function bind(){
   $('#aTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.a.view=b.dataset.v;analysisOptions();renderAnalysis()};
   $('#chkGo').onclick=doCheck;
   $('#chkClear').onclick=()=>{S.chk=[];$('#chkMsg').textContent='';renderChkInputs();renderChkResult()};
-  $('#chkIn').addEventListener('input',e=>{const i=e.target,all=$$('#chkIn input'),k=all.indexOf(i);
-    if(i.value.length>=2&&k<6&&+i.value>5)all[k+1].focus()});
+  $('#chkIn').addEventListener('input',e=>{const i=e.target,all=$$('#chkIn input'),k=all.indexOf(i),v=i.value.trim();
+    const iss=chkIssues();$('#chkMsg').textContent=iss.dup.length?t('c_err_dup',{list:iss.dup.join(', ')}):'';
+    if(k<6&&(v.length>=2||(v.length===1&&+v*10>POOL())))all[k+1].focus()});
   $('#chkIn').addEventListener('keydown',e=>{if(e.key==='Enter')doCheck()});
   $('#gLines').oninput=e=>{S.g.lines=+e.target.value;$('#gLinesOut').textContent=S.g.lines};
   $('#gExlast').onchange=e=>{S.g.exlast=+e.target.value;renderGenStatic()};
