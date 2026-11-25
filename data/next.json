@@ -1,10 +1,10 @@
 {
-  "date": "2026-11-24",
-  "jackpot": 30000000,
+  "date": "2026-11-27",
+  "jackpot": 40000000,
   "maxplus": {
-    "count": 30,
+    "count": 40,
     "amount": 100000
   },
   "source": "PlayNow 頭獎 (BCLC 官方)",
-  "updated": "2026-11-20 22:52"
+  "updated": "2026-11-24 22:03"
 }
